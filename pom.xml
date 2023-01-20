@@ -38,6 +38,16 @@
       <artifactId>logback-classic</artifactId>
       <version>${logback-classic.version}</version>
     </dependency>
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>smallrye-mutiny-vertx-mysql-client</artifactId>
+      <version>${mutiny-vertx.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.hibernate.reactive</groupId>
+      <artifactId>hibernate-reactive-core</artifactId>
+      <version>${hibernate-reactive-core.version}</version>
+    </dependency>
   </dependencies>
 
   <build>
