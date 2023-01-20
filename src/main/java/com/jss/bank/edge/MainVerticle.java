@@ -21,7 +21,7 @@ public class MainVerticle extends AbstractVerticle {
         .listen(8080)
         .onItem().invoke(() -> logger.info("HTTP server started on port 8080"));
 
-    return server.replaceWithVoid();
+    return Uni.combine().all().unis(server).discardItems();
   }
 
   public static void main(String[] args) {
@@ -30,6 +30,7 @@ public class MainVerticle extends AbstractVerticle {
     vertx.deployVerticle(MainVerticle::new, new DeploymentOptions())
         .subscribe()
         .with(
-            ok -> logger.info("Main Verticle has been deployed successfully"), err -> logger.error("Fail on deployment", err));
+            ok -> logger.info("Main Verticle has been deployed successfully"),
+            err -> logger.error("Fail on deployment", err));
   }
 }
