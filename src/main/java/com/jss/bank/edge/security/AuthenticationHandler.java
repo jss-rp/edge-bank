@@ -52,7 +52,7 @@ public class AuthenticationHandler implements Consumer<RoutingContext> {
           connectOptions.setPassword(config.getString("password"));
 
           final PoolOptions poolOptions = new PoolOptions();
-          poolOptions.setMaxSize(10);
+          poolOptions.setMaxSize(config.getInteger("pool_size", 10));
 
           final SqlClient client = MySQLPool.pool(vertx, connectOptions, poolOptions);
           this.authenticationProvider = SqlAuthentication.create(client, new SqlAuthenticationOptions());
