@@ -1,9 +1,10 @@
 package com.jss.bank.edge;
 
 import com.jss.bank.edge.security.AuthenticationHandler;
-import io.smallrye.mutiny.Uni;
+import com.jss.bank.edge.security.entity.User;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.ext.web.Router;
+import org.hibernate.reactive.mutiny.Mutiny;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,7 +14,7 @@ public class RouterInitializer {
 
   public static final Logger logger = LoggerFactory.getLogger(RouterInitializer.class);
 
-  public static Router initialize(final Vertx vertx) {
+  public static Router initialize(final Vertx vertx, final Mutiny.SessionFactory sessionFactory) {
     final Router router = Router.router(vertx);
 
     router.get("/me")
@@ -24,7 +25,10 @@ public class RouterInitializer {
               .endAndForget("Something is wrong");
         })
         .handler(new AuthenticationHandler(vertx, Set.of("user")))
-        .respond(context -> Uni.createFrom().item(context.user().authorizations().get("sql-client")));
+        .respond(context -> sessionFactory.withSession(session -> session
+            .find(User.class,
+                (String) context.user().get("username"))
+        ));
 
     return router;
   }

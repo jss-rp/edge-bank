@@ -15,12 +15,14 @@ public class MainVerticle extends AbstractVerticle {
 
   public static final Logger logger = LoggerFactory.getLogger(MainVerticle.class);
 
+  private Mutiny.SessionFactory session;
+
   @Override
   public Uni<Void> asyncStart() {
     Infrastructure.setDroppedExceptionHandler(error -> logger.error("Mutiny dropped exception", error));
 
     Uni<Void> hibernate = Uni.createFrom().deferred(() -> {
-      Persistence
+      session = Persistence
           .createEntityManagerFactory("mysql-edge-bank")
           .unwrap(Mutiny.SessionFactory.class);
 
@@ -30,7 +32,7 @@ public class MainVerticle extends AbstractVerticle {
     hibernate = vertx.executeBlocking(hibernate)
         .onItem().invoke(() -> logger.info("Hibernate Reactive is ready"));
 
-    var root = Router.router(vertx);
+    final Router root = Router.router(vertx);
 
     root.route("/*")
         .failureHandler(ctx -> {
@@ -38,14 +40,14 @@ public class MainVerticle extends AbstractVerticle {
           ctx.response().setStatusCode(500).endAndForget();
         });
 
-    root.route("/api/*")
-        .subRouter(RouterInitializer.initialize(vertx));
-
     final Uni<HttpServer> server = vertx.createHttpServer()
         .requestHandler(root)
         .listen(8080)
         .onItem().invoke(() -> logger.info("HTTP server started on port 8080"));
 
-    return Uni.combine().all().unis(server, hibernate).discardItems();
+    return Uni.combine().all().unis(server, hibernate)
+        .discardItems()
+        .onTermination()
+        .invoke(() -> root.route("/api/*").subRouter(RouterInitializer.initialize(vertx, session)));
   }
 }
