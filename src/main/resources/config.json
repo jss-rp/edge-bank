@@ -1,0 +1,7 @@
+{
+  "auth_db": {
+    "schema": "edge_bank",
+    "username": "root",
+    "password": "secret"
+  }
+}

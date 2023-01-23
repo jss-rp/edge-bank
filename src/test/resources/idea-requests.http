@@ -1,0 +1,2 @@
+GET http://localhost:8080/api/me
+Authorization: dXNlcjp1c2Vy

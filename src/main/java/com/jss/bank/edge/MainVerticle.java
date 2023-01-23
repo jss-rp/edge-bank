@@ -1,10 +1,10 @@
 package com.jss.bank.edge;
 
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.smallrye.mutiny.vertx.core.AbstractVerticle;
-import io.vertx.core.DeploymentOptions;
-import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.core.http.HttpServer;
+import io.vertx.mutiny.ext.web.Router;
 import org.hibernate.reactive.mutiny.Mutiny;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +17,8 @@ public class MainVerticle extends AbstractVerticle {
 
   @Override
   public Uni<Void> asyncStart() {
+    Infrastructure.setDroppedExceptionHandler(error -> logger.error("Mutiny dropped exception", error));
+
     Uni<Void> hibernate = Uni.createFrom().deferred(() -> {
       Persistence
           .createEntityManagerFactory("mysql-edge-bank")
@@ -28,23 +30,22 @@ public class MainVerticle extends AbstractVerticle {
     hibernate = vertx.executeBlocking(hibernate)
         .onItem().invoke(() -> logger.info("Hibernate Reactive is ready"));
 
+    var root = Router.router(vertx);
+
+    root.route("/*")
+        .failureHandler(ctx -> {
+          logger.error("An error occurred.", ctx.failure());
+          ctx.response().setStatusCode(500).endAndForget();
+        });
+
+    root.route("/api/*")
+        .subRouter(RouterInitializer.initialize(vertx));
+
     final Uni<HttpServer> server = vertx.createHttpServer()
-        .requestHandler(handler -> {
-          handler.response().end("base").subscribe();
-        })
+        .requestHandler(root)
         .listen(8080)
         .onItem().invoke(() -> logger.info("HTTP server started on port 8080"));
 
     return Uni.combine().all().unis(server, hibernate).discardItems();
-  }
-
-  public static void main(String[] args) {
-    final Vertx vertx = Vertx.vertx();
-
-    vertx.deployVerticle(MainVerticle::new, new DeploymentOptions())
-        .subscribe()
-        .with(
-            ok -> logger.info("Main Verticle has been deployed successfully"),
-            err -> logger.error("Fail on deployment", err));
   }
 }
