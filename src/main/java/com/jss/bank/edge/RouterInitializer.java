@@ -36,6 +36,16 @@ public class RouterInitializer {
         .respond(context -> sessionFactory.withSession(session -> session
             .find(User.class,
                 (String) context.user().get("username"))
+            .onItem()
+            .transform(user -> ResponseWrapper.builder()
+                .success(true)
+                .message("User data found successfully")
+                .timestamp(LocalDateTime.now())
+                .content(UserDTO.builder()
+                    .username(user.getUsername())
+                    .role(user.getAuthorization().getRole())
+                    .build())
+                .build())
         ));
 
     router.post("/user")
