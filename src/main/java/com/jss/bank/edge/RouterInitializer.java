@@ -1,13 +1,19 @@
 package com.jss.bank.edge;
 
+import com.jss.bank.edge.domain.ResponseWrapper;
+import com.jss.bank.edge.domain.dto.UserDTO;
 import com.jss.bank.edge.security.AuthenticationHandler;
+import com.jss.bank.edge.security.entity.Role;
 import com.jss.bank.edge.security.entity.User;
+import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.Vertx;
+import io.vertx.mutiny.ext.auth.VertxContextPRNG;
 import io.vertx.mutiny.ext.web.Router;
 import org.hibernate.reactive.mutiny.Mutiny;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDateTime;
 import java.util.Set;
 
 public class RouterInitializer {
@@ -16,6 +22,7 @@ public class RouterInitializer {
 
   public static Router initialize(final Vertx vertx, final Mutiny.SessionFactory sessionFactory) {
     final Router router = Router.router(vertx);
+    final AuthenticationHandler authHandler = new AuthenticationHandler(vertx);
 
     router.get("/me")
         .failureHandler(ctx -> {
@@ -24,11 +31,49 @@ public class RouterInitializer {
               .setStatusCode(500)
               .endAndForget("Something is wrong");
         })
-        .handler(new AuthenticationHandler(vertx, Set.of("user")))
+        .putMetadata("allowedRoles", Set.of("user"))
+        .handler(authHandler)
         .respond(context -> sessionFactory.withSession(session -> session
             .find(User.class,
                 (String) context.user().get("username"))
         ));
+
+    router.post("/user")
+        .consumes("application/json")
+        .produces("application/json")
+        .putMetadata("allowedRoles", Set.of("user"))
+        .handler(authHandler)
+        .respond(context -> {
+          final UserDTO dto = context.body().asPojo(UserDTO.class);
+          return sessionFactory.withSession(session -> {
+            final User user = User.builder()
+                .username(dto.getUsername())
+                .authorization(Role.builder()
+                    .role(dto.getRole())
+                    .build())
+                .build();
+
+            final String password = authHandler.getSqlAuthentication()
+                .hash(
+                    "pbkdf2",
+                    VertxContextPRNG.current().nextString(32),
+                    dto.getPassword()
+                );
+
+            user.setPassword(password);
+
+            return session.persist(user)
+                .call(session::flush)
+                .replaceWith(ResponseWrapper.builder()
+                    .success(true)
+                    .timestamp(LocalDateTime.now())
+                    .message("User created successfully")
+                    .content(new JsonObject()
+                        .put("username", dto.getUsername())
+                        .put("role", dto.getRole()))
+                    .build());
+          });
+        });
 
     return router;
   }

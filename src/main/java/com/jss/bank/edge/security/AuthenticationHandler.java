@@ -9,7 +9,6 @@ import io.vertx.ext.auth.sqlclient.SqlAuthenticationOptions;
 import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.core.http.HttpServerRequest;
-import io.vertx.mutiny.ext.auth.authentication.AuthenticationProvider;
 import io.vertx.mutiny.ext.auth.authorization.AuthorizationProvider;
 import io.vertx.mutiny.ext.auth.authorization.RoleBasedAuthorization;
 import io.vertx.mutiny.ext.auth.sqlclient.SqlAuthentication;
@@ -23,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Base64;
-import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -32,13 +30,11 @@ public class AuthenticationHandler implements Consumer<RoutingContext> {
 
   public static final Logger logger = LoggerFactory.getLogger(AuthenticationHandler.class);
 
-  private AuthenticationProvider authenticationProvider;
+  private SqlAuthentication sqlAuthentication;
 
   private AuthorizationProvider authorizationProvider;
 
-  private final Set<String> allowedRoles = new HashSet<>();
-
-  public AuthenticationHandler(final Vertx vertx, final Set<String> allowedRoles) {
+  public AuthenticationHandler(final Vertx vertx) {
     final Context context = vertx.getOrCreateContext();
     final Optional<JsonObject> optionalConfig = Optional.ofNullable(context.config().getJsonObject("auth_db"));
 
@@ -55,9 +51,8 @@ public class AuthenticationHandler implements Consumer<RoutingContext> {
           poolOptions.setMaxSize(config.getInteger("pool_size", 10));
 
           final SqlClient client = MySQLPool.pool(vertx, connectOptions, poolOptions);
-          this.authenticationProvider = SqlAuthentication.create(client, new SqlAuthenticationOptions());
+          this.sqlAuthentication = SqlAuthentication.create(client, new SqlAuthenticationOptions());
           this.authorizationProvider = SqlAuthorization.create(client);
-          this.allowedRoles.addAll(allowedRoles);
         },
         () -> logger.error("No database configuration for AuthenticationProvider.")
     );
@@ -66,18 +61,20 @@ public class AuthenticationHandler implements Consumer<RoutingContext> {
 
   @Override
   public void accept(final RoutingContext context) {
-    if (authenticationProvider == null) {
+    if (sqlAuthentication == null) {
       logger.error("AuthenticationProvider is null.");
       context.response().setStatusCode(500).endAndForget();
       return;
     }
 
+    final Set<String> allowedRoles = context.currentRoute().getMetadata("allowedRoles");
+
     extractCredentials(context.request())
         .onItem()
-        .call(credential -> authenticationProvider.authenticate(credential)
+        .call(credential -> sqlAuthentication.authenticate(credential)
             .onItem()
             .call(user -> authorizationProvider.getAuthorizations(user))
-            .invoke(user -> this.allowedRoles.forEach(role -> {
+            .invoke(user -> allowedRoles.forEach(role -> {
               if (!RoleBasedAuthorization.create(role).match(user)) {
                 throw new UserNotAllowedException("Current user is not allowed for [" + role + "] resources.");
               }
@@ -118,5 +115,9 @@ public class AuthenticationHandler implements Consumer<RoutingContext> {
           request.response().setStatusCode(401).endAndForget();
           logger.error("Fail on authentication.", error);
         });
+  }
+
+  public SqlAuthentication getSqlAuthentication() {
+    return sqlAuthentication;
   }
 }

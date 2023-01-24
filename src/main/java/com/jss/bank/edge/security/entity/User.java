@@ -18,6 +18,9 @@ public class User implements Serializable {
   @Id
   private String username;
 
+  @Column
+  private String password;
+
   @ManyToOne
   @JoinTable(
       name="users_roles",
