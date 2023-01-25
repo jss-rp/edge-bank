@@ -1,4 +1,4 @@
-package com.jss.bank.edge;
+package com.jss.bank.edge.resource;
 
 import com.jss.bank.edge.domain.ResponseWrapper;
 import com.jss.bank.edge.domain.dto.UserDTO;
@@ -6,7 +6,6 @@ import com.jss.bank.edge.security.AuthenticationHandler;
 import com.jss.bank.edge.security.entity.Role;
 import com.jss.bank.edge.security.entity.User;
 import io.vertx.core.json.JsonObject;
-import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.ext.auth.VertxContextPRNG;
 import io.vertx.mutiny.ext.web.Router;
 import org.hibernate.reactive.mutiny.Mutiny;
@@ -16,14 +15,16 @@ import org.slf4j.LoggerFactory;
 import java.time.LocalDateTime;
 import java.util.Set;
 
-public class RouterInitializer {
+public class UserResource extends AbstractResource {
 
-  public static final Logger logger = LoggerFactory.getLogger(RouterInitializer.class);
+  public static final Logger logger = LoggerFactory.getLogger(UserResource.class);
 
-  public static Router initialize(final Vertx vertx, final Mutiny.SessionFactory sessionFactory) {
-    final Router router = Router.router(vertx);
-    final AuthenticationHandler authHandler = new AuthenticationHandler(vertx);
+  public UserResource(final Router router, final Mutiny.SessionFactory sessionFactory, final AuthenticationHandler authHandler) {
+    super(router, sessionFactory, authHandler);
+  }
 
+  @Override
+  public void provide() {
     router.get("/me")
         .failureHandler(ctx -> {
           logger.error("error",ctx.failure());
@@ -85,6 +86,5 @@ public class RouterInitializer {
           });
         });
 
-    return router;
   }
 }

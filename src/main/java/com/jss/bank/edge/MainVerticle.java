@@ -57,6 +57,6 @@ public class MainVerticle extends AbstractVerticle {
     return Uni.combine().all().unis(server, hibernate)
         .discardItems()
         .onTermination()
-        .invoke(() -> root.route("/api/*").subRouter(RouterInitializer.initialize(vertx, session)));
+        .invoke(() -> root.route("/api/*").subRouter(ResourceRouter.route(vertx, session)));
   }
 }
