@@ -26,21 +26,28 @@ ALTER TABLE roles_perms
 ALTER TABLE users_roles
     ADD CONSTRAINT fk_username FOREIGN KEY (username) REFERENCES users (username);
 
-INSERT INTO roles_perms (role, perm)
-VALUE
-(
-    'root', 'all'
-);
+INSERT INTO roles_perms (role, perm) VALUE ('root', 'all');
 
 INSERT INTO users (username, password)
-VALUE
-(
+    VALUE (
     'root',
     '$pbkdf2$urwqRuO67ILiMDqD7x/bzhskW7ahv2DKbQ8hQZoabng$879BU44ubTVm3PWnZTd9KDbw8UcI+eKyhW4JMrSI917uoxH/1meuZjNqj1UlztIj6axQJY1ojNf60uAYnYOxpA'
 );
 
-INSERT INTO users_roles(username, role)
-VALUE
+INSERT INTO users_roles(username, role) VALUE ('root', 'root');
+
+CREATE TABLE accounts
 (
-    'root', 'root'
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    agency     VARCHAR(10)  NOT NULL,
+    code       VARCHAR(10)  NOT NULL,
+    dtVerifier VARCHAR(10)  NOT NULL,
+    balance    DOUBLE       NOT NULL,
+    username   VARCHAR(255) NOT NULL
 );
+
+ALTER TABLE accounts
+    ADD CONSTRAINT uk_account_code UNIQUE KEY (code);
+
+ALTER TABLE accounts
+    ADD CONSTRAINT fk_username_account UNIQUE KEY (username);
