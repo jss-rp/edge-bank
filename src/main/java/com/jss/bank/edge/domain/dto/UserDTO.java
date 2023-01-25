@@ -2,6 +2,8 @@ package com.jss.bank.edge.domain.dto;
 
 import lombok.*;
 
+import java.util.Set;
+
 @Data
 @Builder
 @ToString
@@ -10,5 +12,5 @@ import lombok.*;
 public class UserDTO {
   private String username;
   private String password;
-  private String role;
+  private Set<String> role;
 }
