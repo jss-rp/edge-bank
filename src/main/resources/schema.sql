@@ -27,6 +27,7 @@ ALTER TABLE users_roles
     ADD CONSTRAINT fk_username FOREIGN KEY (username) REFERENCES users (username);
 
 INSERT INTO roles_perms (role, perm) VALUE ('root', 'all');
+INSERT INTO roles_perms (role, perm) VALUE ('root', 'view,manage');
 
 INSERT INTO users (username, password)
     VALUE (
@@ -34,6 +35,7 @@ INSERT INTO users (username, password)
     '$pbkdf2$urwqRuO67ILiMDqD7x/bzhskW7ahv2DKbQ8hQZoabng$879BU44ubTVm3PWnZTd9KDbw8UcI+eKyhW4JMrSI917uoxH/1meuZjNqj1UlztIj6axQJY1ojNf60uAYnYOxpA'
 );
 
+INSERT INTO users_roles(username, role) VALUE ('root', 'user');
 INSERT INTO users_roles(username, role) VALUE ('root', 'root');
 
 CREATE TABLE accounts

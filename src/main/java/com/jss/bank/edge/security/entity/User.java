@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
 import java.io.Serializable;
+import java.util.Set;
 
 @Data
 @Builder
@@ -21,11 +22,11 @@ public class User implements Serializable {
   @Column
   private String password;
 
-  @ManyToOne
+  @OneToMany(fetch = FetchType.EAGER)
   @JoinTable(
       name="users_roles",
       joinColumns = {@JoinColumn(name = "username")},
       inverseJoinColumns = {@JoinColumn(name = "role")}
   )
-  private Role authorization;
+  private Set<Role> authorization;
 }

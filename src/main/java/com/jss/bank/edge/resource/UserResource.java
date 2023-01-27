@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class UserResource extends AbstractResource {
 
@@ -44,7 +45,7 @@ public class UserResource extends AbstractResource {
                 .timestamp(LocalDateTime.now())
                 .content(UserDTO.builder()
                     .username(user.getUsername())
-                    .role(user.getAuthorization().getRole())
+                    .role(user.getAuthorization().stream().map(Role::getRole).collect(Collectors.toSet()))
                     .build())
                 .build())
         ));
@@ -59,9 +60,11 @@ public class UserResource extends AbstractResource {
           return sessionFactory.withSession(session -> {
             final User user = User.builder()
                 .username(dto.getUsername())
-                .authorization(Role.builder()
-                    .role(dto.getRole())
-                    .build())
+                .authorization(dto.getRole().stream()
+                        .map(raw -> Role.builder()
+                                .role(raw)
+                                .build())
+                        .collect(Collectors.toSet()))
                 .build();
 
             final String password = authHandler.getSqlAuthentication()
