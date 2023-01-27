@@ -32,7 +32,7 @@ public class UserResource extends AbstractResource {
               .setStatusCode(500)
               .endAndForget("Something is wrong");
         })
-        .putMetadata("allowedRoles", Set.of("user"))
+        .putMetadata("allowedRoles", Set.of("all"))
         .handler(authHandler)
         .respond(context -> sessionFactory.withSession(session -> session
             .find(User.class,
@@ -86,5 +86,23 @@ public class UserResource extends AbstractResource {
           });
         });
 
+    router.get("/user")
+        .putMetadata("allowedRoles", Set.of("root"))
+        .handler(authHandler)
+        .respond(context -> sessionFactory.withSession(session -> {
+          final String username = context.queryParams().get("username");
+          if (username != null) {
+            return session.find(User.class, username);
+          }
+
+          return null;
+        }).onItem()
+            .ifNull()
+            .fail()
+            .onFailure()
+            .call(() -> context.response().setStatusCode(404).end())
+            .onItem()
+            .call(() -> context.response().setStatusCode(200).end())
+        );
   }
 }
