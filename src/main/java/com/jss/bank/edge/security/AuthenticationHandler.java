@@ -58,7 +58,6 @@ public class AuthenticationHandler implements Consumer<RoutingContext> {
     );
   }
 
-
   @Override
   public void accept(final RoutingContext context) {
     if (sqlAuthentication == null) {

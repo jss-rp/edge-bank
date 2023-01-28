@@ -31,9 +31,9 @@ INSERT INTO roles_perms (role, perm) VALUE ('root', 'view,manage');
 
 INSERT INTO users (username, password)
     VALUE (
-    'root',
-    '$pbkdf2$urwqRuO67ILiMDqD7x/bzhskW7ahv2DKbQ8hQZoabng$879BU44ubTVm3PWnZTd9KDbw8UcI+eKyhW4JMrSI917uoxH/1meuZjNqj1UlztIj6axQJY1ojNf60uAYnYOxpA'
-);
+           'root',
+           '$pbkdf2$urwqRuO67ILiMDqD7x/bzhskW7ahv2DKbQ8hQZoabng$879BU44ubTVm3PWnZTd9KDbw8UcI+eKyhW4JMrSI917uoxH/1meuZjNqj1UlztIj6axQJY1ojNf60uAYnYOxpA'
+    );
 
 INSERT INTO users_roles(username, role) VALUE ('root', 'user');
 INSERT INTO users_roles(username, role) VALUE ('root', 'root');
@@ -52,4 +52,21 @@ ALTER TABLE accounts
     ADD CONSTRAINT uk_account_code UNIQUE KEY (code);
 
 ALTER TABLE accounts
-    ADD CONSTRAINT fk_username_account UNIQUE KEY (username);
+    ADD CONSTRAINT fk_username_account FOREIGN KEY (username) REFERENCES users(username);
+
+CREATE TABLE transactions
+(
+    id           INT AUTO_INCREMENT PRIMARY KEY,
+    uuid         VARCHAR(30)   NOT NULL,
+    value        DECIMAL(15, 5) NOT NULL,
+    type         VARCHAR(10)   NOT NULL,
+    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    finished_at  TIMESTAMP,
+    account_code INT           NOT NULL
+);
+
+ALTER TABLE transactions
+    ADD CONSTRAINT uk_transaction_uuid UNIQUE KEY (uuid);
+
+ALTER TABLE transactions
+    ADD CONSTRAINT fk_transaction_account FOREIGN KEY (account_code) REFERENCES accounts (id);
