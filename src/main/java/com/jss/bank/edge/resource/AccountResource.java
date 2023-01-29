@@ -42,12 +42,12 @@ public class AccountResource extends AbstractResource {
           final AccountDTO dto = context.body().asPojo(AccountDTO.class);
           return sessionFactory.withSession(session -> {
             final Account account = Account.builder()
-                .code(dto.getCode())
-                .agency(dto.getAgency())
-                .dtVerifier(dto.getDtVerifier())
+                .code(dto.code())
+                .agency(dto.agency())
+                .dtVerifier(dto.dtVerifier())
                 .balance(BigDecimal.ZERO)
                 .user(User.builder()
-                    .username(dto.getUsername())
+                    .username(dto.username())
                     .build())
                 .build();
 
@@ -95,7 +95,7 @@ public class AccountResource extends AbstractResource {
                     .chain(() -> {
                       final BigDecimal currentBalance = result.getBalance();
 
-                      if(INCOME.toString().equals(transaction.getType())) {
+                      if (INCOME.toString().equals(transaction.getType())) {
                         result.setBalance(currentBalance.add(transaction.getValue()));
                       } else if (OUTCOME.toString().equals(transaction.getType())) {
                         result.setBalance(currentBalance.add(transaction.getValue()));
@@ -115,6 +115,5 @@ public class AccountResource extends AbstractResource {
               .timestamp(LocalDateTime.now())
               .build());
         });
-
   }
 }

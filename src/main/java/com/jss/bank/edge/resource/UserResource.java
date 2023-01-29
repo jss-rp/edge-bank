@@ -43,10 +43,11 @@ public class UserResource extends AbstractResource {
                 .success(true)
                 .message("User data found successfully")
                 .timestamp(LocalDateTime.now())
-                .content(UserDTO.builder()
-                    .username(user.getUsername())
-                    .role(user.getAuthorization().stream().map(Role::getRole).collect(Collectors.toSet()))
-                    .build())
+                .content(new UserDTO(
+                    user.getUsername(),
+                    "",
+                    user.getAuthorization().stream().map(Role::getRole).collect(Collectors.toSet())
+                ))
                 .build())
         ));
 
@@ -59,8 +60,8 @@ public class UserResource extends AbstractResource {
           final UserDTO dto = context.body().asPojo(UserDTO.class);
           return sessionFactory.withSession(session -> {
             final User user = User.builder()
-                .username(dto.getUsername())
-                .authorization(dto.getRole().stream()
+                .username(dto.username())
+                .authorization(dto.roles().stream()
                         .map(raw -> Role.builder()
                                 .role(raw)
                                 .build())
@@ -71,7 +72,7 @@ public class UserResource extends AbstractResource {
                 .hash(
                     "pbkdf2",
                     VertxContextPRNG.current().nextString(32),
-                    dto.getPassword()
+                    dto.password()
                 );
 
             user.setPassword(password);
@@ -83,8 +84,8 @@ public class UserResource extends AbstractResource {
                     .timestamp(LocalDateTime.now())
                     .message("User created successfully")
                     .content(new JsonObject()
-                        .put("username", dto.getUsername())
-                        .put("role", dto.getRole()))
+                        .put("username", dto.username())
+                        .put("roles", dto.roles()))
                     .build());
           });
         });

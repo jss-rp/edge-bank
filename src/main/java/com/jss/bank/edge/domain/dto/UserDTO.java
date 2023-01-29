@@ -1,16 +1,9 @@
 package com.jss.bank.edge.domain.dto;
 
-import lombok.*;
-
 import java.util.Set;
 
-@Data
-@Builder
-@ToString
-@NoArgsConstructor
-@AllArgsConstructor
-public class UserDTO {
-  private String username;
-  private String password;
-  private Set<String> role;
-}
+public record UserDTO(
+    String username,
+    String password,
+    Set<String> roles
+) { }
