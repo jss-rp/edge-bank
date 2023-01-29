@@ -12,6 +12,7 @@ import org.hibernate.reactive.mutiny.Mutiny;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.UUID;
@@ -44,7 +45,7 @@ public class AccountResource extends AbstractResource {
                 .code(dto.getCode())
                 .agency(dto.getAgency())
                 .dtVerifier(dto.getDtVerifier())
-                .balance(0.0)
+                .balance(BigDecimal.ZERO)
                 .user(User.builder()
                     .username(dto.getUsername())
                     .build())
@@ -92,10 +93,12 @@ public class AccountResource extends AbstractResource {
 
                 return session.persist(transaction)
                     .chain(() -> {
+                      final BigDecimal currentBalance = result.getBalance();
+
                       if(INCOME.toString().equals(transaction.getType())) {
-                        result.setBalance(result.getBalance() + transaction.getValue().doubleValue());
+                        result.setBalance(currentBalance.add(transaction.getValue()));
                       } else if (OUTCOME.toString().equals(transaction.getType())) {
-                        result.setBalance(result.getBalance() - transaction.getValue().doubleValue());
+                        result.setBalance(currentBalance.add(transaction.getValue()));
                       }
 
                       return session.persist(result);

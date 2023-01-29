@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
+import java.math.BigDecimal;
 
 @Data
 @Builder
@@ -29,7 +30,7 @@ public class Account {
   private String dtVerifier;
 
   @Column
-  private Double balance;
+  private BigDecimal balance;
 
   @OneToOne
   @JoinColumn(name = "username")
