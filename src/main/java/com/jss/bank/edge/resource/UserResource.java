@@ -3,6 +3,7 @@ package com.jss.bank.edge.resource;
 import com.jss.bank.edge.domain.ResponseWrapper;
 import com.jss.bank.edge.domain.dto.UserDTO;
 import com.jss.bank.edge.security.AuthenticationHandler;
+import com.jss.bank.edge.security.RolesProvider;
 import com.jss.bank.edge.security.entity.Role;
 import com.jss.bank.edge.security.entity.User;
 import io.vertx.core.json.JsonObject;
@@ -13,7 +14,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class UserResource extends AbstractResource {
@@ -33,7 +33,9 @@ public class UserResource extends AbstractResource {
               .setStatusCode(500)
               .endAndForget("Something is wrong");
         })
-        .putMetadata("allowedRoles", Set.of("all"))
+        .putMetadata("allowedRoles", RolesProvider.builder()
+                .role("all")
+                .build())
         .handler(authHandler)
         .respond(context -> sessionFactory.withSession(session -> session
             .find(User.class,
@@ -54,7 +56,9 @@ public class UserResource extends AbstractResource {
     router.post("/user")
         .consumes("application/json")
         .produces("application/json")
-        .putMetadata("allowedRoles", Set.of("user"))
+        .putMetadata("allowedRoles", RolesProvider.builder()
+                .role("user")
+                .build())
         .handler(authHandler)
         .respond(context -> {
           final UserDTO dto = context.body().asPojo(UserDTO.class);
@@ -91,7 +95,7 @@ public class UserResource extends AbstractResource {
         });
 
     router.get("/user")
-        .putMetadata("allowedRoles", Set.of("root"))
+        .putMetadata("allowedRoles", RolesProvider.builder().build())
         .handler(authHandler)
         .respond(context -> sessionFactory.withSession(session -> {
           final String username = context.queryParams().get("username");

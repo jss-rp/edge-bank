@@ -6,6 +6,7 @@ import com.jss.bank.edge.domain.dto.TransactionDTO;
 import com.jss.bank.edge.domain.entity.Account;
 import com.jss.bank.edge.domain.entity.Transaction;
 import com.jss.bank.edge.security.AuthenticationHandler;
+import com.jss.bank.edge.security.RolesProvider;
 import com.jss.bank.edge.security.entity.User;
 import io.vertx.mutiny.ext.web.Router;
 import org.hibernate.reactive.mutiny.Mutiny;
@@ -14,7 +15,6 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Set;
 import java.util.UUID;
 
 import static com.jss.bank.edge.domain.dto.TransactionType.INCOME;
@@ -36,7 +36,7 @@ public class AccountResource extends AbstractResource {
           ctx.response()
               .setStatusCode(500)
               .endAndForget("Something is wrong");
-        }).putMetadata("allowedRoles", Set.of("root"))
+        }).putMetadata("allowedRoles", RolesProvider.builder().build())
         .handler(authHandler)
         .respond(context -> {
           final AccountDTO dto = context.body().asPojo(AccountDTO.class);
@@ -64,7 +64,9 @@ public class AccountResource extends AbstractResource {
 
     router.post("/account/transaction")
         .handler(authHandler)
-        .putMetadata("allowedRoles", Set.of("all"))
+        .putMetadata("allowedRoles", RolesProvider.builder()
+                .role("all")
+                .build())
         .respond(context -> {
           final TransactionDTO dto = context.body().asPojo(TransactionDTO.class);
           final Account account = Account.builder()

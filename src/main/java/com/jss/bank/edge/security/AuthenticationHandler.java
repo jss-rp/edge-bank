@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Base64;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Consumer;
 
 public class AuthenticationHandler implements Consumer<RoutingContext> {
@@ -66,7 +65,7 @@ public class AuthenticationHandler implements Consumer<RoutingContext> {
       return;
     }
 
-    final Set<String> allowedRoles = context.currentRoute().getMetadata("allowedRoles");
+    final RolesProvider allowedRoles = context.currentRoute().getMetadata("allowedRoles");
 
     extractCredentials(context.request())
         .onItem()
@@ -74,8 +73,8 @@ public class AuthenticationHandler implements Consumer<RoutingContext> {
             .onItem()
             .call(user -> authorizationProvider.getAuthorizations(user))
             .invoke(user -> {
-              if(!allowedRoles.contains("all")) {
-                allowedRoles.forEach(role -> {
+              if(!allowedRoles.getRoles().contains("all")) {
+                allowedRoles.getRoles().forEach(role -> {
                   if (!RoleBasedAuthorization.create(role).match(user)) {
                     throw new UserNotAllowedException("Current user is not allowed for [" + role + "] resources.");
                   }
