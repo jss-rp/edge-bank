@@ -35,4 +35,8 @@ public class Account {
   @OneToOne
   @JoinColumn(name = "username")
   private User user;
+
+  @OneToOne
+  @JoinColumn(name = "person_id")
+  private Person person;
 }

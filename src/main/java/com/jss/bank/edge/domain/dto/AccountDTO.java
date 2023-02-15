@@ -7,5 +7,6 @@ public record AccountDTO (
     String code,
     String dtVerifier,
     BigDecimal balance,
-    String username
+    String username,
+    PersonDTO person
 ) { }

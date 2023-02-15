@@ -4,6 +4,7 @@ import com.jss.bank.edge.domain.ResponseWrapper;
 import com.jss.bank.edge.domain.dto.AccountDTO;
 import com.jss.bank.edge.domain.dto.TransactionDTO;
 import com.jss.bank.edge.domain.entity.Account;
+import com.jss.bank.edge.domain.entity.Person;
 import com.jss.bank.edge.domain.entity.Transaction;
 import com.jss.bank.edge.security.AuthenticationHandler;
 import com.jss.bank.edge.security.RolesProvider;
@@ -14,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -46,12 +48,20 @@ public class AccountResource extends AbstractResource {
                 .agency(dto.agency())
                 .dtVerifier(dto.dtVerifier())
                 .balance(BigDecimal.ZERO)
-                .user(User.builder()
-                    .username(dto.username())
+                .user(
+                    session.getReference(User.class,
+                    dto.username()))
+                .person(Person.builder()
+                    .firstName(dto.person().firstName())
+                    .surname(dto.person().surname())
+                    .birthDate(LocalDate.now())
+                    .document(dto.person().document())
                     .build())
                 .build();
 
-            return session.persist(account)
+            return session.persist(account.getPerson())
+                .call(session::flush)
+                .chain(__ -> session.persist(account))
                 .call(session::flush)
                 .replaceWith(ResponseWrapper.builder()
                     .success(true)
@@ -65,8 +75,8 @@ public class AccountResource extends AbstractResource {
     router.post("/account/transaction")
         .handler(authHandler)
         .putMetadata("allowedRoles", RolesProvider.builder()
-                .role("all")
-                .build())
+            .role("all")
+            .build())
         .respond(context -> {
           final TransactionDTO dto = context.body().asPojo(TransactionDTO.class);
           final Account account = Account.builder()
