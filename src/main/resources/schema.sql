@@ -38,6 +38,19 @@ INSERT INTO users (username, password)
 INSERT INTO users_roles(username, role) VALUE ('root', 'user');
 INSERT INTO users_roles(username, role) VALUE ('root', 'root');
 
+CREATE TABLE people
+(
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    first_name VARCHAR(45) NOT NULL,
+    surname    VARCHAR(45) NOT NULL,
+    birth_date DATE        NOT NULL,
+    document   VARCHAR(15) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE people
+    ADD CONSTRAINT uk_person_document UNIQUE KEY (document);
+
 CREATE TABLE accounts
 (
     id         INT AUTO_INCREMENT PRIMARY KEY,
@@ -45,24 +58,28 @@ CREATE TABLE accounts
     code       VARCHAR(10)  NOT NULL,
     dtVerifier VARCHAR(10)  NOT NULL,
     balance    DOUBLE       NOT NULL,
-    username   VARCHAR(255) NOT NULL
+    username   VARCHAR(255) NOT NULL,
+    person_id  INT          NOT NULL
 );
 
 ALTER TABLE accounts
     ADD CONSTRAINT uk_account_code UNIQUE KEY (code);
 
 ALTER TABLE accounts
-    ADD CONSTRAINT fk_username_account FOREIGN KEY (username) REFERENCES users(username);
+    ADD CONSTRAINT fk_username_account FOREIGN KEY (username) REFERENCES users (username);
+
+ALTER TABLE accounts
+    ADD CONSTRAINT fk_person_id_account FOREIGN KEY (person_id) REFERENCES people (id);
 
 CREATE TABLE transactions
 (
     id           INT AUTO_INCREMENT PRIMARY KEY,
-    uuid         VARCHAR(30)   NOT NULL,
+    uuid         VARCHAR(30)    NOT NULL,
     value        DECIMAL(15, 5) NOT NULL,
-    type         VARCHAR(10)   NOT NULL,
+    type         VARCHAR(10)    NOT NULL,
     created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     finished_at  TIMESTAMP,
-    account_code INT           NOT NULL
+    account_code INT            NOT NULL
 );
 
 ALTER TABLE transactions
@@ -70,3 +87,19 @@ ALTER TABLE transactions
 
 ALTER TABLE transactions
     ADD CONSTRAINT fk_transaction_account FOREIGN KEY (account_code) REFERENCES accounts (id);
+
+CREATE TRIGGER balance_sum
+    AFTER INSERT
+    ON transactions
+    FOR EACH ROW
+BEGIN
+    UPDATE accounts a SET a.balance = a.balance + NEW.value WHERE a.id = NEW.account_code;
+END;
+
+INSERT INTO transactions(uuid, value, type, created_at, finished_at, account_code)
+VALUES ('merda', 10.0, 'INCOME', NOW(), NOW(), 1);
+
+SELECT * FROM accounts
+-- SELECT * FROM transactions
+
+-- DROP TRIGGER balance_sum;
