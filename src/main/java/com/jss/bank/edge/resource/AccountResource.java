@@ -19,9 +19,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import static com.jss.bank.edge.domain.dto.TransactionType.INCOME;
-import static com.jss.bank.edge.domain.dto.TransactionType.OUTCOME;
-
 public class AccountResource extends AbstractResource {
 
   public static final Logger logger = LoggerFactory.getLogger(AccountResource.class);
@@ -105,21 +102,8 @@ public class AccountResource extends AbstractResource {
 
                 return session.persist(transaction)
                     .chain(() -> {
-                      final BigDecimal currentBalance = result.getBalance();
-
-                      if (INCOME.toString().equals(transaction.getType())) {
-                        result.setBalance(currentBalance.add(transaction.getValue()));
-                      } else if (OUTCOME.toString().equals(transaction.getType())) {
-                        result.setBalance(currentBalance.add(transaction.getValue()));
-                      }
-
-                      return session.persist(result);
-                    })
-                    .call(() -> {
                       transaction.setFinishedAt(LocalDateTime.now());
-
-                      return session.persist(transaction)
-                          .call(session::flush);
+                      return session.persist(transaction).call(session::flush);
                     });
               })).onItem().transform(result -> ResponseWrapper.builder()
               .success(true)

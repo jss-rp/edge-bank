@@ -74,7 +74,7 @@ ALTER TABLE accounts
 CREATE TABLE transactions
 (
     id           INT AUTO_INCREMENT PRIMARY KEY,
-    uuid         VARCHAR(30)    NOT NULL,
+    uuid         VARCHAR(50)    NOT NULL,
     value        DECIMAL(15, 5) NOT NULL,
     type         VARCHAR(10)    NOT NULL,
     created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -95,11 +95,3 @@ CREATE TRIGGER balance_sum
 BEGIN
     UPDATE accounts a SET a.balance = a.balance + NEW.value WHERE a.id = NEW.account_code;
 END;
-
-INSERT INTO transactions(uuid, value, type, created_at, finished_at, account_code)
-VALUES ('merda', 10.0, 'INCOME', NOW(), NOW(), 1);
-
-SELECT * FROM accounts
--- SELECT * FROM transactions
-
--- DROP TRIGGER balance_sum;
