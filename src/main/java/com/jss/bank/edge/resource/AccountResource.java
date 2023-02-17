@@ -1,14 +1,16 @@
 package com.jss.bank.edge.resource;
 
 import com.jss.bank.edge.domain.ResponseWrapper;
-import com.jss.bank.edge.domain.dto.AccountDTO;
-import com.jss.bank.edge.domain.dto.TransactionDTO;
+import com.jss.bank.edge.domain.dto.*;
 import com.jss.bank.edge.domain.entity.Account;
 import com.jss.bank.edge.domain.entity.Person;
 import com.jss.bank.edge.domain.entity.Transaction;
 import com.jss.bank.edge.security.AuthenticationHandler;
 import com.jss.bank.edge.security.RolesProvider;
+import com.jss.bank.edge.security.entity.Role;
 import com.jss.bank.edge.security.entity.User;
+import io.smallrye.mutiny.Uni;
+import io.vertx.mutiny.ext.auth.VertxContextPRNG;
 import io.vertx.mutiny.ext.web.Router;
 import org.hibernate.reactive.mutiny.Mutiny;
 import org.slf4j.Logger;
@@ -17,7 +19,9 @@ import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class AccountResource extends AbstractResource {
 
@@ -39,33 +43,75 @@ public class AccountResource extends AbstractResource {
         .handler(authHandler)
         .respond(context -> {
           final AccountDTO dto = context.body().asPojo(AccountDTO.class);
-          return sessionFactory.withSession(session -> {
-            final Account account = Account.builder()
-                .code(dto.code())
-                .agency(dto.agency())
-                .dtVerifier(dto.dtVerifier())
-                .balance(BigDecimal.ZERO)
-                .user(
-                    session.getReference(User.class,
-                    dto.username()))
-                .person(Person.builder()
-                    .firstName(dto.person().firstName())
-                    .surname(dto.person().surname())
-                    .birthDate(LocalDate.now())
-                    .document(dto.person().document())
-                    .build())
+
+          return sessionFactory.withTransaction(session -> {
+            // TODO: Make a random password generator
+            final String password = authHandler.getSqlAuthentication()
+                .hash(
+                    "pbkdf2",
+                    VertxContextPRNG.current().nextString(32),
+                    "password"
+                );
+            final User user = User.builder()
+                .username(dto.username())
+                .password(password)
+                .authorization(Set.of(Role.builder()
+                    .role("user")
+                    .build()
+                )).build();
+
+            final Person person = Person.builder()
+                .firstName(dto.person().firstName())
+                .surname(dto.person().surname())
+                .birthDate(LocalDate.now())
+                .document(dto.person().document())
                 .build();
 
-            return session.persist(account.getPerson())
-                .call(session::flush)
-                .chain(__ -> session.persist(account))
-                .call(session::flush)
-                .replaceWith(ResponseWrapper.builder()
-                    .success(true)
-                    .timestamp(LocalDateTime.now())
-                    .message("Account created successfully")
-                    .content(dto)
-                    .build());
+            final Uni<Void> userPersistence = session.persist(user)
+                .onFailure()
+                .invoke(error -> logger.error("Fail on User persistence", error));
+
+            final Uni<Void> personPersistence = session.persist(person)
+                .onFailure()
+                .invoke(error -> logger.error("Fail on Person persistence", error));
+
+            return Uni.combine().all().unis(userPersistence, personPersistence)
+                .asTuple()
+                .flatMap(__ -> {
+                  final Account account = Account.builder()
+                      .code(dto.code())
+                      .agency(dto.agency())
+                      .dtVerifier(dto.dtVerifier())
+                      .balance(BigDecimal.ZERO)
+                      .user(user)
+                      .person(person)
+                      .build();
+
+                  return session.persist(account)
+                      .call(session::flush)
+                      .chain(empty -> Uni.createFrom().item(
+                          ResponseWrapper.builder()
+                              .success(true)
+                              .message("New account created successfully")
+                              .content(new CreatedAccoutResponseDTO(
+                                  account.getAgency(),
+                                  account.getCode(),
+                                  account.getDtVerifier(),
+                                  new UserDTO(
+                                      user.getUsername(),
+                                      user.getPassword(),
+                                      user.getAuthorization().stream()
+                                          .map(Role::getRole)
+                                          .collect(Collectors.toSet())),
+                                  new PersonDTO(
+                                      person.getFirstName(),
+                                      person.getSurname(),
+                                      person.getBirthDate(),
+                                      person.getDocument())
+                              ))
+                              .timestamp(LocalDateTime.now())
+                              .build()));
+                });
           });
         });
 
