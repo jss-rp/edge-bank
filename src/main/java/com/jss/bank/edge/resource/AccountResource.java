@@ -9,6 +9,7 @@ import com.jss.bank.edge.security.AuthenticationHandler;
 import com.jss.bank.edge.security.RolesProvider;
 import com.jss.bank.edge.security.entity.Role;
 import com.jss.bank.edge.security.entity.User;
+import com.jss.bank.edge.util.PasswordGenerator;
 import io.smallrye.mutiny.Uni;
 import io.vertx.mutiny.ext.auth.VertxContextPRNG;
 import io.vertx.mutiny.ext.web.Router;
@@ -45,16 +46,17 @@ public class AccountResource extends AbstractResource {
           final AccountDTO dto = context.body().asPojo(AccountDTO.class);
 
           return sessionFactory.withTransaction(session -> {
-            // TODO: Make a random password generator
-            final String password = authHandler.getSqlAuthentication()
+            final PasswordGenerator passwordGenerator = new PasswordGenerator();
+            final String password = passwordGenerator.generate(15);
+            final String hashedPassword = authHandler.getSqlAuthentication()
                 .hash(
                     "pbkdf2",
                     VertxContextPRNG.current().nextString(32),
-                    "password"
+                    password
                 );
             final User user = User.builder()
                 .username(dto.username())
-                .password(password)
+                .password(hashedPassword)
                 .authorization(Set.of(Role.builder()
                     .role("user")
                     .build()
@@ -99,7 +101,7 @@ public class AccountResource extends AbstractResource {
                                   account.getDtVerifier(),
                                   new UserDTO(
                                       user.getUsername(),
-                                      user.getPassword(),
+                                      password,
                                       user.getAuthorization().stream()
                                           .map(Role::getRole)
                                           .collect(Collectors.toSet())),
