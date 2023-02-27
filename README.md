@@ -10,3 +10,14 @@ To get started, you should have a MySQL server intance running. Then, clone the 
 git clone https://github.com/jss-rp/edge-bank
 ```
 
+Use Maven to build the application
+
+```
+mvn package
+```
+
+Then, run the application
+
+```
+mvn exec:java
+```
