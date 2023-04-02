@@ -30,6 +30,9 @@ public class Account {
   private String dtVerifier;
 
   @Column
+  private String password;
+
+  @Column
   private BigDecimal balance;
 
   @OneToOne

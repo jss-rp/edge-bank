@@ -29,6 +29,8 @@ public class AuthenticationHandler implements Consumer<RoutingContext> {
 
   public static final Logger logger = LoggerFactory.getLogger(AuthenticationHandler.class);
 
+  private static final String AUTH_QUERY = "SELECT password FROM accounts WHERE code = ?";
+
   private SqlAuthentication sqlAuthentication;
 
   private AuthorizationProvider authorizationProvider;
@@ -50,7 +52,9 @@ public class AuthenticationHandler implements Consumer<RoutingContext> {
           poolOptions.setMaxSize(config.getInteger("pool_size", 10));
 
           final SqlClient client = MySQLPool.pool(vertx, connectOptions, poolOptions);
-          this.sqlAuthentication = SqlAuthentication.create(client, new SqlAuthenticationOptions());
+          this.sqlAuthentication = SqlAuthentication.create(client, new SqlAuthenticationOptions(
+              new JsonObject().put("authenticationQuery", AUTH_QUERY)
+          ));
           this.authorizationProvider = SqlAuthorization.create(client);
         },
         () -> logger.error("No database configuration for AuthenticationProvider.")
