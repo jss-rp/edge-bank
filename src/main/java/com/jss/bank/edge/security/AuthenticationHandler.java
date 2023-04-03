@@ -69,24 +69,11 @@ public class AuthenticationHandler implements Consumer<RoutingContext> {
       return;
     }
 
-    final RolesProvider allowedRoles = context.currentRoute().getMetadata("allowedRoles");
-
     extractCredentials(context.request())
         .onItem()
         .call(credential -> sqlAuthentication.authenticate(credential)
             .onItem()
-            .call(user -> authorizationProvider.getAuthorizations(user))
-            .invoke(user -> {
-              if(!allowedRoles.getRoles().contains("all")) {
-                allowedRoles.getRoles().forEach(role -> {
-                  if (!RoleBasedAuthorization.create(role).match(user)) {
-                    throw new UserNotAllowedException("Current user is not allowed for [" + role + "] resources.");
-                  }
-                });
-              }
-
-              context.setUser(user);
-            })
+            .invoke(context::setUser)
             .onFailure()
             .transform(error -> {
               if (error instanceof UserNotAllowedException) {
