@@ -9,10 +9,7 @@ import io.vertx.ext.auth.sqlclient.SqlAuthenticationOptions;
 import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.core.http.HttpServerRequest;
-import io.vertx.mutiny.ext.auth.authorization.AuthorizationProvider;
-import io.vertx.mutiny.ext.auth.authorization.RoleBasedAuthorization;
 import io.vertx.mutiny.ext.auth.sqlclient.SqlAuthentication;
-import io.vertx.mutiny.ext.auth.sqlclient.SqlAuthorization;
 import io.vertx.mutiny.ext.web.RoutingContext;
 import io.vertx.mutiny.mysqlclient.MySQLPool;
 import io.vertx.mutiny.sqlclient.SqlClient;
@@ -32,8 +29,6 @@ public class AuthenticationHandler implements Consumer<RoutingContext> {
   private static final String AUTH_QUERY = "SELECT password FROM accounts WHERE code = ?";
 
   private SqlAuthentication sqlAuthentication;
-
-  private AuthorizationProvider authorizationProvider;
 
   public AuthenticationHandler(final Vertx vertx) {
     final Context context = vertx.getOrCreateContext();
@@ -55,7 +50,6 @@ public class AuthenticationHandler implements Consumer<RoutingContext> {
           this.sqlAuthentication = SqlAuthentication.create(client, new SqlAuthenticationOptions(
               new JsonObject().put("authenticationQuery", AUTH_QUERY)
           ));
-          this.authorizationProvider = SqlAuthorization.create(client);
         },
         () -> logger.error("No database configuration for AuthenticationProvider.")
     );
