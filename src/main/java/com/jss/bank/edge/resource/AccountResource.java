@@ -34,6 +34,38 @@ public class AccountResource extends AbstractResource {
 
   @Override
   public void provide() {
+    router.get("/account")
+        .failureHandler(ctx -> {
+          logger.error("error", ctx.failure());
+          ctx.response()
+              .setStatusCode(500)
+              .endAndForget("Something is wrong");
+        })
+        .putMetadata("allowedRoles", RolesProvider.builder()
+            .role("all")
+            .build())
+        .handler(authHandler)
+        .respond(context -> sessionFactory.withSession(session -> session
+            .createQuery("SELECT a FROM accounts a WHERE a.code = :code", Account.class)
+            .setParameter("code", context.user().get("username"))
+            .getSingleResult()
+            .onItem()
+            .transform(account -> ResponseWrapper.builder()
+                .success(true)
+                .message("Account found successfully")
+                .timestamp(LocalDateTime.now())
+                .content(new AccountDTO(
+                    account.getAgency(),
+                    account.getCode(),
+                    account.getDtVerifier(),
+                    account.getBalance(),
+                    "", new PersonDTO()
+                ))
+                .build()
+            )
+        ));
+
+
     router.post("/account")
         .failureHandler(ctx -> {
           logger.error("error", ctx.failure());
@@ -55,7 +87,7 @@ public class AccountResource extends AbstractResource {
                     password
                 );
             final User user = User.builder()
-                .username(dto.username())
+                .username(dto.getUsername())
                 .password(hashedPassword)
                 .authorization(Set.of(Role.builder()
                     .role("user")
@@ -63,10 +95,10 @@ public class AccountResource extends AbstractResource {
                 )).build();
 
             final Person person = Person.builder()
-                .firstName(dto.person().firstName())
-                .surname(dto.person().surname())
+                .firstName(dto.getPerso().getFirstName())
+                .surname(dto.getPerso().getSurname())
                 .birthDate(LocalDate.now())
-                .document(dto.person().document())
+                .document(dto.getPerso().getDocumen())
                 .build();
 
             final Uni<Void> userPersistence = session.persist(user)
@@ -81,9 +113,9 @@ public class AccountResource extends AbstractResource {
                 .asTuple()
                 .flatMap(__ -> {
                   final Account account = Account.builder()
-                      .code(dto.code())
-                      .agency(dto.agency())
-                      .dtVerifier(dto.dtVerifier())
+                      .code(dto.getCode())
+                      .agency(dto.getAgency())
+                      .dtVerifier(dto.getDtVerifier())
                       .balance(BigDecimal.ZERO)
                       .user(user)
                       .person(person)

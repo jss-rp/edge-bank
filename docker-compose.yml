@@ -2,18 +2,19 @@ version: '3.1'
 
 services:
   db:
-    image: mysql:8.0.32-debian
+    image: mysql:8.0.32
     restart: always
     environment:
       MYSQL_USER: user
       MYSQL_PASSWORD: secret
       MYSQL_DATABASE: edge_bank
+      MYSQL_ROOT_PASSWORD: root
     ports:
       - "3306:3306"
   app:
     build: .
     environment:
-      DB_HOST: db
+      DB_HOST: "db"
       DB_USER: user
       DB_PASSWORD: secret
     ports:
