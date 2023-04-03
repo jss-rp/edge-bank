@@ -2,7 +2,6 @@ package com.jss.bank.edge;
 
 import com.jss.bank.edge.resource.AbstractResource;
 import com.jss.bank.edge.resource.AccountResource;
-import com.jss.bank.edge.resource.UserResource;
 import com.jss.bank.edge.security.AuthenticationHandler;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.ext.web.Router;
@@ -18,7 +17,6 @@ public class ResourceRouter {
     final AuthenticationHandler authHandler = new AuthenticationHandler(vertx);
     final Set<AbstractResource> resources = new HashSet<>();
 
-    resources.add(new UserResource(router, sessionFactory, authHandler));
     resources.add(new AccountResource(router, sessionFactory, authHandler));
     resources.forEach(AbstractResource::provide);
 

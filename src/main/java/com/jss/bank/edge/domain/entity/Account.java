@@ -1,6 +1,5 @@
 package com.jss.bank.edge.domain.entity;
 
-import com.jss.bank.edge.security.entity.User;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -26,7 +25,7 @@ public class Account {
   @Column
   private String code;
 
-  @Column
+  @Column(name = "dt_verifier")
   private String dtVerifier;
 
   @Column
@@ -34,10 +33,6 @@ public class Account {
 
   @Column
   private BigDecimal balance;
-
-  @OneToOne
-  @JoinColumn(name = "username")
-  private User user;
 
   @OneToOne
   @JoinColumn(name = "person_id")

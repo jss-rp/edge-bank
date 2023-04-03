@@ -1,13 +1,14 @@
 package com.jss.bank.edge.resource;
 
 import com.jss.bank.edge.domain.ResponseWrapper;
-import com.jss.bank.edge.domain.dto.*;
+import com.jss.bank.edge.domain.dto.AccountDTO;
+import com.jss.bank.edge.domain.dto.CreatedAccoutResponseDTO;
+import com.jss.bank.edge.domain.dto.PersonDTO;
+import com.jss.bank.edge.domain.dto.TransactionDTO;
 import com.jss.bank.edge.domain.entity.Account;
 import com.jss.bank.edge.domain.entity.Person;
 import com.jss.bank.edge.domain.entity.Transaction;
 import com.jss.bank.edge.security.AuthenticationHandler;
-import com.jss.bank.edge.security.entity.Role;
-import com.jss.bank.edge.security.entity.User;
 import com.jss.bank.edge.util.PasswordGenerator;
 import io.smallrye.mutiny.Uni;
 import io.vertx.mutiny.ext.auth.VertxContextPRNG;
@@ -19,9 +20,7 @@ import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 public class AccountResource extends AbstractResource {
 
@@ -61,7 +60,6 @@ public class AccountResource extends AbstractResource {
             )
         ));
 
-
     router.post("/account")
         .failureHandler(ctx -> {
           logger.error("error", ctx.failure());
@@ -82,13 +80,6 @@ public class AccountResource extends AbstractResource {
                     VertxContextPRNG.current().nextString(32),
                     password
                 );
-            final User user = User.builder()
-                .username(dto.getUsername())
-                .password(hashedPassword)
-                .authorization(Set.of(Role.builder()
-                    .role("user")
-                    .build()
-                )).build();
 
             final Person person = Person.builder()
                 .firstName(dto.getPerso().getFirstName())
@@ -97,51 +88,40 @@ public class AccountResource extends AbstractResource {
                 .document(dto.getPerso().getDocumen())
                 .build();
 
-            final Uni<Void> userPersistence = session.persist(user)
-                .onFailure()
-                .invoke(error -> logger.error("Fail on User persistence", error));
-
             final Uni<Void> personPersistence = session.persist(person)
                 .onFailure()
                 .invoke(error -> logger.error("Fail on Person persistence", error));
 
-            return Uni.combine().all().unis(userPersistence, personPersistence)
-                .asTuple()
-                .flatMap(__ -> {
-                  final Account account = Account.builder()
-                      .code(dto.getCode())
-                      .agency(dto.getAgency())
-                      .dtVerifier(dto.getDtVerifier())
-                      .balance(BigDecimal.ZERO)
-                      .user(user)
-                      .person(person)
-                      .build();
+            return personPersistence.flatMap(__ -> {
+              final Account account = Account.builder()
+                  .code(dto.getCode())
+                  .agency(dto.getAgency())
+                  .dtVerifier(dto.getDtVerifier())
+                  .balance(BigDecimal.ZERO)
+                  .password(hashedPassword)
+                  .person(person)
+                  .build();
 
-                  return session.persist(account)
-                      .call(session::flush)
-                      .chain(empty -> Uni.createFrom().item(
-                          ResponseWrapper.builder()
-                              .success(true)
-                              .message("New account created successfully")
-                              .content(new CreatedAccoutResponseDTO(
-                                  account.getAgency(),
-                                  account.getCode(),
-                                  account.getDtVerifier(),
-                                  new UserDTO(
-                                      user.getUsername(),
-                                      password,
-                                      user.getAuthorization().stream()
-                                          .map(Role::getRole)
-                                          .collect(Collectors.toSet())),
-                                  new PersonDTO(
-                                      person.getFirstName(),
-                                      person.getSurname(),
-                                      person.getBirthDate(),
-                                      person.getDocument())
-                              ))
-                              .timestamp(LocalDateTime.now())
-                              .build()));
-                });
+              return session.persist(account)
+                  .call(session::flush)
+                  .chain(empty -> Uni.createFrom().item(
+                      ResponseWrapper.builder()
+                          .success(true)
+                          .message("New account created successfully")
+                          .content(new CreatedAccoutResponseDTO(
+                              account.getAgency(),
+                              account.getCode(),
+                              account.getDtVerifier(),
+                              null,
+                              new PersonDTO(
+                                  person.getFirstName(),
+                                  person.getSurname(),
+                                  person.getBirthDate(),
+                                  person.getDocument())
+                          ))
+                          .timestamp(LocalDateTime.now())
+                          .build()));
+            });
           });
         });
 
@@ -153,9 +133,6 @@ public class AccountResource extends AbstractResource {
               .agency(dto.getAccountAgency())
               .code(dto.getAccountCode())
               .dtVerifier(dto.getDtVerifier())
-              .user(User.builder()
-                  .username(context.user().get("username"))
-                  .build())
               .build();
 
           final Transaction transaction = Transaction.builder()
