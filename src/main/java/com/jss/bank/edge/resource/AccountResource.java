@@ -6,6 +6,7 @@ import com.jss.bank.edge.domain.dto.CreatedAccoutResponseDTO;
 import com.jss.bank.edge.domain.dto.PersonDTO;
 import com.jss.bank.edge.domain.dto.TransactionDTO;
 import com.jss.bank.edge.domain.entity.Account;
+import com.jss.bank.edge.domain.entity.Document;
 import com.jss.bank.edge.domain.entity.Person;
 import com.jss.bank.edge.domain.entity.Transaction;
 import com.jss.bank.edge.security.AuthenticationHandler;
@@ -54,7 +55,12 @@ public class AccountResource extends AbstractResource {
                     account.getCode(),
                     account.getDtVerifier(),
                     account.getBalance(),
-                    "", new PersonDTO()
+                    PersonDTO.builder()
+                        .firstName(account.getPerson().getFirstName())
+                        .surname(account.getPerson().getSurname())
+                        .document(account.getPerson().getDocument().getDocument())
+                        .birthDate(account.getPerson().getBirthDate())
+                        .build()
                 ))
                 .build()
             )
@@ -81,47 +87,59 @@ public class AccountResource extends AbstractResource {
                     password
                 );
 
-            final Person person = Person.builder()
-                .firstName(dto.getPerso().getFirstName())
-                .surname(dto.getPerso().getSurname())
-                .birthDate(LocalDate.now())
-                .document(dto.getPerso().getDocumen())
+            final Document document = Document.builder()
+                .document(dto.getPerson().getDocument())
+                .documentType("cpf")
                 .build();
+
+            final Person person = Person.builder()
+                .firstName(dto.getPerson().getFirstName())
+                .surname(dto.getPerson().getSurname())
+                .birthDate(LocalDate.now())
+                .document(document)
+                .build();
+
+            final Uni<Void> documentPersistence = session.persist(document)
+                .onFailure()
+                .invoke(error -> logger.error("Fail on Document persistence", error));
 
             final Uni<Void> personPersistence = session.persist(person)
                 .onFailure()
                 .invoke(error -> logger.error("Fail on Person persistence", error));
 
-            return personPersistence.flatMap(__ -> {
-              final Account account = Account.builder()
-                  .code(dto.getCode())
-                  .agency(dto.getAgency())
-                  .dtVerifier(dto.getDtVerifier())
-                  .balance(BigDecimal.ZERO)
-                  .password(hashedPassword)
-                  .person(person)
-                  .build();
 
-              return session.persist(account)
-                  .call(session::flush)
-                  .chain(empty -> Uni.createFrom().item(
-                      ResponseWrapper.builder()
-                          .success(true)
-                          .message("New account created successfully")
-                          .content(new CreatedAccoutResponseDTO(
-                              account.getAgency(),
-                              account.getCode(),
-                              account.getDtVerifier(),
-                              null,
-                              new PersonDTO(
-                                  person.getFirstName(),
-                                  person.getSurname(),
-                                  person.getBirthDate(),
-                                  person.getDocument())
-                          ))
-                          .timestamp(LocalDateTime.now())
-                          .build()));
-            });
+            return documentPersistence
+                .chain(__ -> personPersistence)
+                .flatMap(__ -> {
+                  final Account account = Account.builder()
+                      .code(dto.getCode())
+                      .agency(dto.getAgency())
+                      .dtVerifier(dto.getDtVerifier())
+                      .balance(BigDecimal.ZERO)
+                      .password(hashedPassword)
+                      .person(person)
+                      .build();
+
+                  return session.persist(account)
+                      .call(session::flush)
+                      .chain(empty -> Uni.createFrom().item(
+                          ResponseWrapper.builder()
+                              .success(true)
+                              .message("New account created successfully")
+                              .content(new CreatedAccoutResponseDTO(
+                                  account.getAgency(),
+                                  account.getCode(),
+                                  account.getDtVerifier(),
+                                  null,
+                                  new PersonDTO(
+                                      person.getFirstName(),
+                                      person.getSurname(),
+                                      person.getBirthDate(),
+                                      document.getDocument())
+                              ))
+                              .timestamp(LocalDateTime.now())
+                              .build()));
+                });
           });
         });
 

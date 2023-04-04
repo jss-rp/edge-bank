@@ -16,6 +16,5 @@ public class AccountDTO {
   private String code;
   private String dtVerifier;
   private BigDecimal balance;
-  private String username;
-  private PersonDTO perso;
+  private PersonDTO person;
 }

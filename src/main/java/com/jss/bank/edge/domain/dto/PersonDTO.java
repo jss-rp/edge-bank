@@ -15,5 +15,5 @@ public class PersonDTO {
   private String firstName;
   private String surname;
   private LocalDate birthDate;
-  private String documen;
+  private String document;
 }

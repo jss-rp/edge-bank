@@ -6,33 +6,26 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity(name = "people")
-public class Person {
+@Entity(name = "documents")
+public class Document {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column(name = "first_name", length = 45)
-  private String firstName;
+  @Column(nullable = false, unique = true, updatable = false)
+  private String document;
 
-  @Column(length = 45)
-  private String surname;
+  @Column(name = "type", nullable = false, updatable = false)
+  private String documentType;
 
-  @Column(name = "birth_date")
-  private LocalDate birthDate;
-
-  @OneToOne(optional = false)
-  @JoinColumn(name = "document_id")
-  private Document document;
-
-  @Column(name = "created_at")
+  @Column(name = "created_at", updatable = false)
   private LocalDateTime createdAt;
+
 }
