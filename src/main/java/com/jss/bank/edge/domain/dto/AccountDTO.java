@@ -1,5 +1,8 @@
 package com.jss.bank.edge.domain.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonKey;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,9 +15,18 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AccountDTO {
+
   private String agency;
+
   private String code;
+
+  @JsonProperty("dt_verifier")
   private String dtVerifier;
+
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  private String password;
+
   private BigDecimal balance;
+
   private PersonDTO person;
 }

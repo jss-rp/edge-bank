@@ -54,6 +54,7 @@ public class AccountResource extends AbstractResource {
                     account.getAgency(),
                     account.getCode(),
                     account.getDtVerifier(),
+                    null,
                     account.getBalance(),
                     PersonDTO.builder()
                         .firstName(account.getPerson().getFirstName())
