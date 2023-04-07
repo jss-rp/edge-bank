@@ -34,13 +34,6 @@ public class AccountResource extends AbstractResource {
   @Override
   public void provide() {
     router.get("/account")
-        .failureHandler(ctx -> {
-          logger.error("error", ctx.failure());
-          ctx.response()
-              .setStatusCode(500)
-              .endAndForget("Something is wrong");
-        })
-        .handler(authHandler)
         .respond(context -> sessionFactory.withSession(session -> session
             .createQuery("SELECT a FROM accounts a WHERE a.code = :code", Account.class)
             .setParameter("code", context.user().get("username"))
@@ -68,13 +61,6 @@ public class AccountResource extends AbstractResource {
         ));
 
     router.post("/account")
-        .failureHandler(ctx -> {
-          logger.error("error", ctx.failure());
-          ctx.response()
-              .setStatusCode(500)
-              .endAndForget("Something is wrong");
-        })
-        .handler(authHandler)
         .respond(context -> {
           final AccountDTO dto = context.body().asPojo(AccountDTO.class);
 
@@ -145,7 +131,6 @@ public class AccountResource extends AbstractResource {
         });
 
     router.post("/account/transaction")
-        .handler(authHandler)
         .respond(context -> {
           final TransactionDTO dto = context.body().asPojo(TransactionDTO.class);
           final Account account = Account.builder()

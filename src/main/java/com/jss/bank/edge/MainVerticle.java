@@ -2,6 +2,7 @@ package com.jss.bank.edge;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.jss.bank.edge.security.AuthenticationHandler;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.smallrye.mutiny.vertx.core.AbstractVerticle;
@@ -41,8 +42,10 @@ public class MainVerticle extends AbstractVerticle {
         .onItem().invoke(() -> logger.info("Hibernate Reactive is ready"));
 
     final Router root = Router.router(vertx);
+    final AuthenticationHandler authHandler = new AuthenticationHandler(vertx);
 
     root.route("/*")
+        .handler(authHandler)
         .handler(BodyHandler.create())
         .failureHandler(ctx -> {
           logger.error("An error occurred.", ctx.failure());
