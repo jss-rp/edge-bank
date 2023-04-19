@@ -1,5 +1,6 @@
-package com.jss.bank.edge.security.entity;
+package com.jss.bank.edge.domain.entity;
 
+import com.jss.bank.edge.security.entity.Role;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

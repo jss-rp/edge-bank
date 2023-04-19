@@ -4,27 +4,8 @@ CREATE TABLE users
     password VARCHAR(255) NOT NULL
 );
 
-CREATE TABLE users_roles
-(
-    username VARCHAR(255) NOT NULL,
-    role     VARCHAR(255) NOT NULL
-);
-
-CREATE TABLE roles_perms
-(
-    role VARCHAR(255) NOT NULL,
-    perm VARCHAR(255) NOT NULL
-);
-
 ALTER TABLE users
     ADD CONSTRAINT pk_username PRIMARY KEY (username);
-ALTER TABLE users_roles
-    ADD CONSTRAINT pk_users_roles PRIMARY KEY (username, role);
-ALTER TABLE roles_perms
-    ADD CONSTRAINT pk_roles_perms PRIMARY KEY (role, perm);
-
-ALTER TABLE users_roles
-    ADD CONSTRAINT fk_username FOREIGN KEY (username) REFERENCES users (username);
 
 CREATE TABLE documents
 (
@@ -49,6 +30,19 @@ CREATE TABLE people
 
 ALTER TABLE people
     ADD CONSTRAINT fk_person_document_id FOREIGN KEY (document_id) references documents (id);
+
+CREATE TABLE managers
+(
+    id        INT AUTO_INCREMENT PRIMARY KEY,
+    person_id INT          NOT NULL,
+    username  VARCHAR(255) NOT NULL
+);
+
+ALTER TABLE managers
+    ADD CONSTRAINT fk_manager_person_id FOREIGN KEY (person_id) references people (id);
+
+ALTER TABLE managers
+    ADD CONSTRAINT fk_manager_username FOREIGN KEY (username) references users (username);
 
 CREATE TABLE accounts
 (
@@ -92,20 +86,26 @@ BEGIN
     UPDATE accounts a SET a.balance = a.balance + NEW.value WHERE a.code = NEW.account_code;
 END;
 
--- INSERT INTO users (username, password)
--- VALUES ('user',
---         '$pbkdf2$urwqRuO67ILiMDqD7x/bzhskW7ahv2DKbQ8hQZoabng$879BU44ubTVm3PWnZTd9KDbw8UcI+eKyhW4JMrSI917uoxH/1meuZjNqj1UlztIj6axQJY1ojNf60uAYnYOxpA');
---
--- INSERT INTO roles_perms (role, perm)
--- VALUES ('user', 'all');
+INSERT INTO users (username, password)
+VALUES ('user',
+        '$pbkdf2$urwqRuO67ILiMDqD7x/bzhskW7ahv2DKbQ8hQZoabng$879BU44ubTVm3PWnZTd9KDbw8UcI+eKyhW4JMrSI917uoxH/1meuZjNqj1UlztIj6axQJY1ojNf60uAYnYOxpA');
 
 INSERT INTO documents(document, type)
 VALUES ('00000000000', 'cpf');
 
 INSERT INTO people(first_name, surname, birth_date, document_id)
-VALUES ('John', 'Wick', CURRENT_DATE(), 1);
+VALUES ('Jimmi', 'Hendrix', CURRENT_DATE(), 1);
+
+INSERT INTO managers(person_id, username)
+VALUES (1, 'user');
+
+INSERT INTO documents(document, type)
+VALUES ('00000000001', 'cpf');
+
+INSERT INTO people(first_name, surname, birth_date, document_id)
+VALUES ('John', 'Wick', CURRENT_DATE(), 2);
 
 INSERT INTO accounts(agency, code, dt_verifier, password, person_id, balance)
 VALUES ('1', '1', '1',
         '$pbkdf2$urwqRuO67ILiMDqD7x/bzhskW7ahv2DKbQ8hQZoabng$879BU44ubTVm3PWnZTd9KDbw8UcI+eKyhW4JMrSI917uoxH/1meuZjNqj1UlztIj6axQJY1ojNf60uAYnYOxpA',
-        1, 0.0);
+        2, 0.0);

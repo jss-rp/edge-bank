@@ -5,5 +5,4 @@ public class InvalidUsernamePasswordException extends RuntimeException {
   public InvalidUsernamePasswordException(Throwable cause) {
     super(cause);
   }
-
 }
