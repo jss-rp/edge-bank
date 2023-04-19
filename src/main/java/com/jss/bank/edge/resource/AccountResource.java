@@ -9,9 +9,10 @@ import com.jss.bank.edge.domain.entity.Account;
 import com.jss.bank.edge.domain.entity.Document;
 import com.jss.bank.edge.domain.entity.Person;
 import com.jss.bank.edge.domain.entity.Transaction;
-import com.jss.bank.edge.security.AuthenticationHandler;
+import com.jss.bank.edge.security.AccountAuthenticationHandler;
 import com.jss.bank.edge.util.PasswordGenerator;
 import io.smallrye.mutiny.Uni;
+import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.ext.auth.VertxContextPRNG;
 import io.vertx.mutiny.ext.web.Router;
 import org.hibernate.reactive.mutiny.Mutiny;
@@ -23,17 +24,27 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import static io.vertx.core.http.HttpMethod.GET;
+import static io.vertx.core.http.HttpMethod.POST;
+
 public class AccountResource extends AbstractResource {
 
   public static final Logger logger = LoggerFactory.getLogger(AccountResource.class);
 
-  public AccountResource(final Router router, final Mutiny.SessionFactory sessionFactory, final AuthenticationHandler authHandler) {
-    super(router, sessionFactory, authHandler);
+  private final Router router;
+
+  private final AccountAuthenticationHandler accountAuthenticationHandler;
+
+  public AccountResource(final Router router, final Vertx vertx, final Mutiny.SessionFactory sessionFactory) {
+    super(vertx, sessionFactory);
+    this.router = router;
+    this.accountAuthenticationHandler = new AccountAuthenticationHandler();
   }
 
   @Override
   public void provide() {
-    router.get("/account")
+    router.route(GET, "/account")
+        .handler(this.accountAuthenticationHandler)
         .respond(context -> sessionFactory.withSession(session -> session
             .createQuery("SELECT a FROM accounts a WHERE a.code = :code", Account.class)
             .setParameter("code", context.user().get("username"))
@@ -60,14 +71,14 @@ public class AccountResource extends AbstractResource {
             )
         ));
 
-    router.post("/account")
+    router.route(POST, "/account")
         .respond(context -> {
           final AccountDTO dto = context.body().asPojo(AccountDTO.class);
 
           return sessionFactory.withTransaction(session -> {
             final PasswordGenerator passwordGenerator = new PasswordGenerator();
             final String password = passwordGenerator.generate(15);
-            final String hashedPassword = authHandler.getSqlAuthentication()
+            final String hashedPassword = accountAuthenticationHandler.getSqlAuthentication()
                 .hash(
                     "pbkdf2",
                     VertxContextPRNG.current().nextString(32),
@@ -130,7 +141,8 @@ public class AccountResource extends AbstractResource {
           });
         });
 
-    router.post("/account/transaction")
+    router.route(POST, "/account/transaction")
+        .handler(accountAuthenticationHandler)
         .respond(context -> {
           final TransactionDTO dto = context.body().asPojo(TransactionDTO.class);
           final Account account = Account.builder()

@@ -1,20 +1,15 @@
 package com.jss.bank.edge.security;
 
+import com.jss.bank.edge.configutaion.AuthDBConfiguration;
 import com.jss.bank.edge.security.exception.InvalidUsernamePasswordException;
 import com.jss.bank.edge.security.exception.UserNotAllowedException;
 import io.smallrye.mutiny.Uni;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.authentication.UsernamePasswordCredentials;
 import io.vertx.ext.auth.sqlclient.SqlAuthenticationOptions;
-import io.vertx.mutiny.core.Context;
-import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.core.http.HttpServerRequest;
 import io.vertx.mutiny.ext.auth.sqlclient.SqlAuthentication;
 import io.vertx.mutiny.ext.web.RoutingContext;
-import io.vertx.mutiny.mysqlclient.MySQLPool;
-import io.vertx.mutiny.sqlclient.SqlClient;
-import io.vertx.mysqlclient.MySQLConnectOptions;
-import io.vertx.sqlclient.PoolOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,37 +17,22 @@ import java.util.Base64;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-public class AuthenticationHandler implements Consumer<RoutingContext> {
+public class AccountAuthenticationHandler implements Consumer<RoutingContext> {
 
-  public static final Logger logger = LoggerFactory.getLogger(AuthenticationHandler.class);
+  public static final Logger logger = LoggerFactory.getLogger(AccountAuthenticationHandler.class);
 
   private static final String AUTH_QUERY = "SELECT password FROM accounts WHERE code = ?";
 
   private SqlAuthentication sqlAuthentication;
 
-  public AuthenticationHandler(final Vertx vertx) {
-    final Context context = vertx.getOrCreateContext();
-    final Optional<JsonObject> optionalConfig = Optional.ofNullable(context.config().getJsonObject("auth_db"));
-
-    optionalConfig.ifPresentOrElse(
-        config -> {
-          final MySQLConnectOptions connectOptions = new MySQLConnectOptions();
-          connectOptions.setHost(config.getString("host", "localhost"));
-          connectOptions.setPort(config.getInteger("port", 3306));
-          connectOptions.setDatabase(config.getString("schema"));
-          connectOptions.setUser(config.getString("username"));
-          connectOptions.setPassword(config.getString("password"));
-
-          final PoolOptions poolOptions = new PoolOptions();
-          poolOptions.setMaxSize(config.getInteger("pool_size", 10));
-
-          final SqlClient client = MySQLPool.pool(vertx, connectOptions, poolOptions);
-          this.sqlAuthentication = SqlAuthentication.create(client, new SqlAuthenticationOptions(
-              new JsonObject().put("authenticationQuery", AUTH_QUERY)
-          ));
-        },
-        () -> logger.error("No database configuration for AuthenticationProvider.")
-    );
+  public AccountAuthenticationHandler() {
+    Optional.ofNullable(AuthDBConfiguration.getSQLCLient())
+        .ifPresentOrElse(
+            client -> this.sqlAuthentication = SqlAuthentication.create(client, new SqlAuthenticationOptions(
+                new JsonObject().put("authenticationQuery", AUTH_QUERY)
+            )),
+            () -> logger.error("No database configuration for AuthenticationProvider.")
+        );
   }
 
   @Override
