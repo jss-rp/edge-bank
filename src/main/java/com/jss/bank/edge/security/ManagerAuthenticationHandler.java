@@ -8,7 +8,6 @@ import io.vertx.ext.auth.PubSecKeyOptions;
 import io.vertx.ext.auth.authentication.TokenCredentials;
 import io.vertx.ext.auth.authentication.UsernamePasswordCredentials;
 import io.vertx.ext.auth.jwt.JWTAuthOptions;
-import io.vertx.mutiny.core.Context;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.core.http.Cookie;
 import io.vertx.mutiny.ext.auth.jwt.JWTAuth;
@@ -17,9 +16,8 @@ import io.vertx.mutiny.ext.web.RoutingContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoField;
 import java.util.Base64;
+import java.util.Date;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -32,8 +30,6 @@ public class ManagerAuthenticationHandler implements Consumer<RoutingContext> {
   private SqlAuthentication sqlAuth;
 
   public ManagerAuthenticationHandler(final Vertx vertx) {
-    final Context context = vertx.getOrCreateContext();
-
     final JWTAuthOptions jwtAuthOptions = new JWTAuthOptions()
         .addPubSecKey(new PubSecKeyOptions()
             .setAlgorithm("HS256")
@@ -88,7 +84,7 @@ public class ManagerAuthenticationHandler implements Consumer<RoutingContext> {
                   new JsonObject()
                       .put("sub", "edge-bank")
                       .put("username", user.get("username"))
-                      .put("iat", LocalDateTime.now().getLong(ChronoField.INSTANT_SECONDS))
+                      .put("iat", new Date().getTime())
               );
 
               context.response()

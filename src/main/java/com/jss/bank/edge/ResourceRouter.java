@@ -2,6 +2,7 @@ package com.jss.bank.edge;
 
 import com.jss.bank.edge.resource.AbstractResource;
 import com.jss.bank.edge.resource.AccountResource;
+import com.jss.bank.edge.resource.ManagementResource;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.ext.web.Router;
 import org.hibernate.reactive.mutiny.Mutiny;
@@ -16,6 +17,7 @@ public class ResourceRouter {
     final Set<AbstractResource> resources = new HashSet<>();
 
     resources.add(new AccountResource(router, vertx, sessionFactory));
+    resources.add(new ManagementResource(router, vertx, sessionFactory));
     resources.forEach(AbstractResource::provide);
 
     return router;
