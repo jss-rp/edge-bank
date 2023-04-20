@@ -4,6 +4,7 @@ import com.jss.bank.edge.configutaion.AuthDBConfiguration;
 import com.jss.bank.edge.security.exception.InvalidBearerTokenException;
 import com.jss.bank.edge.security.exception.UserNotAllowedException;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.auth.JWTOptions;
 import io.vertx.ext.auth.PubSecKeyOptions;
 import io.vertx.ext.auth.authentication.TokenCredentials;
 import io.vertx.ext.auth.authentication.UsernamePasswordCredentials;
@@ -16,8 +17,11 @@ import io.vertx.mutiny.ext.web.RoutingContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Base64;
-import java.util.Date;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -40,8 +44,7 @@ public class ManagerAuthenticationHandler implements Consumer<RoutingContext> {
     Optional.ofNullable(AuthDBConfiguration.getSQLCLient())
         .ifPresentOrElse(
             client -> this.sqlAuth = SqlAuthentication.create(client),
-            () -> logger.error("No database configuration for SQLAuthentication.")
-        );
+            () -> logger.error("No database configuration for SQLAuthentication."));
   }
 
   @Override
@@ -64,10 +67,7 @@ public class ManagerAuthenticationHandler implements Consumer<RoutingContext> {
               return new InvalidBearerTokenException(error);
             })
             .subscribe().with(
-                result -> {
-                  logger.debug("Successfully authenticated!");
-                  context.next();
-                },
+                result -> logger.debug("Successfully authenticated!"),
                 error -> {
                   logger.error("Authentication failed.", error);
                   context.response().setStatusCode(401).endAndForget();
@@ -80,12 +80,15 @@ public class ManagerAuthenticationHandler implements Consumer<RoutingContext> {
         sqlAuth.authenticate(credentials)
             .onItem()
             .invoke(user -> {
+              final Instant instant = LocalDateTime.now().toInstant(ZoneOffset.UTC);
+
               final String token = jwtAuth.generateToken(
                   new JsonObject()
                       .put("sub", "edge-bank")
                       .put("username", user.get("username"))
-                      .put("iat", new Date().getTime())
-              );
+                      .put("iat", instant.getEpochSecond())
+                      .put("exp", instant.plus(Duration.ofMinutes(30))),
+                  new JWTOptions().setExpiresInMinutes(30));
 
               context.response()
                   .addCookie(Cookie.cookie("JWT", token))
@@ -94,10 +97,7 @@ public class ManagerAuthenticationHandler implements Consumer<RoutingContext> {
             })
             .subscribe()
             .with(
-                credential -> {
-                  logger.debug("Successfully authenticated!");
-                  context.next();
-                },
+                credential -> logger.debug("Successfully authenticated!"),
                 error -> {
                   logger.error("Authentication failed.", error);
                   context.response().setStatusCode(401).endAndForget();

@@ -26,8 +26,8 @@ public class Person {
   @Column(length = 45)
   private String surname;
 
-  @Column(name = "birth_date")
-  private LocalDate birthDate;
+  @Column(name = "birthdate")
+  private LocalDate birthdate;
 
   @OneToOne(optional = false)
   @JoinColumn(name = "document_id")

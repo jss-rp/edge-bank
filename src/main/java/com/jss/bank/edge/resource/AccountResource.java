@@ -64,7 +64,7 @@ public class AccountResource extends AbstractResource {
                         .firstName(account.getPerson().getFirstName())
                         .surname(account.getPerson().getSurname())
                         .document(account.getPerson().getDocument().getDocument())
-                        .birthDate(account.getPerson().getBirthDate())
+                        .birthdate(account.getPerson().getBirthdate())
                         .build()
                 ))
                 .build()
@@ -93,7 +93,7 @@ public class AccountResource extends AbstractResource {
             final Person person = Person.builder()
                 .firstName(dto.getPerson().getFirstName())
                 .surname(dto.getPerson().getSurname())
-                .birthDate(LocalDate.now())
+                .birthdate(LocalDate.now())
                 .document(document)
                 .build();
 
@@ -132,7 +132,7 @@ public class AccountResource extends AbstractResource {
                                   new PersonDTO(
                                       person.getFirstName(),
                                       person.getSurname(),
-                                      person.getBirthDate(),
+                                      person.getBirthdate(),
                                       document.getDocument())
                               ))
                               .timestamp(LocalDateTime.now())

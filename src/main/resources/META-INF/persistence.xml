@@ -8,7 +8,7 @@
 
     <properties>
       <property name="javax.persistence.jdbc.url" value="jdbc:mysql://localhost:3306/edge_bank"/>
-      <property name="javax.persistence.jdbc.user" value="root"/>
+      <property name="javax.persistence.jdbc.user" value="user"/>
       <property name="javax.persistence.jdbc.password" value="secret"/>
       <property name="hibernate.connection.pool_size" value="10"/>
       <property name="javax.persistence.schema-generation.database.action" value="none"/>

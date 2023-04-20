@@ -23,7 +23,7 @@ CREATE TABLE people
     id          INT AUTO_INCREMENT PRIMARY KEY,
     first_name  VARCHAR(45) NOT NULL,
     surname     VARCHAR(45) NOT NULL,
-    birth_date  DATE        NOT NULL,
+    birthdate  DATE        NOT NULL,
     document_id INT         NOT NULL,
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -93,7 +93,7 @@ VALUES ('user',
 INSERT INTO documents(document, type)
 VALUES ('00000000000', 'cpf');
 
-INSERT INTO people(first_name, surname, birth_date, document_id)
+INSERT INTO people(first_name, surname, birthdate, document_id)
 VALUES ('Jimmi', 'Hendrix', CURRENT_DATE(), 1);
 
 INSERT INTO managers(person_id, username)
@@ -102,7 +102,7 @@ VALUES (1, 'user');
 INSERT INTO documents(document, type)
 VALUES ('00000000001', 'cpf');
 
-INSERT INTO people(first_name, surname, birth_date, document_id)
+INSERT INTO people(first_name, surname, birthdate, document_id)
 VALUES ('John', 'Wick', CURRENT_DATE(), 2);
 
 INSERT INTO accounts(agency, code, dt_verifier, password, person_id, balance)

@@ -1,7 +1,8 @@
 {
   "auth_db": {
     "schema": "edge_bank",
-    "username": "root",
+    "host": "localhost",
+    "username": "user",
     "password": "secret"
   }
 }
