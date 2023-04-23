@@ -1,18 +1,19 @@
 package com.jss.bank.edge.resource;
 
-import com.jss.bank.edge.domain.ResponseWrapper;
 import com.jss.bank.edge.domain.dto.AccountDTO;
+import com.jss.bank.edge.handler.AccountPersistenceHandler;
 import com.jss.bank.edge.security.ManagerAuthenticationHandler;
 import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.mutiny.core.Vertx;
+import io.vertx.mutiny.core.eventbus.Message;
 import io.vertx.mutiny.ext.web.RequestBody;
 import io.vertx.mutiny.ext.web.Router;
 import org.hibernate.reactive.mutiny.Mutiny;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.LocalDateTime;
+import static com.jss.bank.edge.verticle.PersistenceVerticle.ACCOUNT_PERSISTENCE_ADDR;
 
 public class ManagementResource extends AbstractResource{
 
@@ -40,18 +41,12 @@ public class ManagementResource extends AbstractResource{
           final RequestBody body = context.body();
           final AccountDTO dto = body.asPojo(AccountDTO.class);
           final DeliveryOptions deliveryOptions = new DeliveryOptions()
-              .setCodecName("AccountDTO");
+              .setCodecName(AccountPersistenceHandler.BODY_CODEC.name());
 
           return vertx.eventBus()
-              .request("edge.bank.persister.account.create", dto, deliveryOptions)
+              .request(ACCOUNT_PERSISTENCE_ADDR, dto, deliveryOptions)
               .onItem()
-              .transform(result -> ResponseWrapper.builder()
-                  .message("Account created successfully")
-                  .content(result.body())
-                  .success(true)
-                  .timestamp(LocalDateTime.now())
-                  .build()
-              );
+              .transform(Message::body);
         });
   }
 }
