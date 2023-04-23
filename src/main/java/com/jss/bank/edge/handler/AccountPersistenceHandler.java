@@ -53,8 +53,8 @@ public class AccountPersistenceHandler implements Consumer<Message<Object>> {
         persistAccount(dto)
             .subscribe()
             .with(__ -> message.reply(dto));
-      } else message.fail(MESSAGE_BODY_CLASS_NOT_EXPECTED.ordinal(), "Message body class was not expected");
-    } else message.fail(MESSAGE_WITHOUT_BODY.ordinal(), "Message body was null");
+      } else message.fail(MESSAGE_BODY_CLASS_NOT_EXPECTED.getCode(), "Message body class was not expected");
+    } else message.fail(MESSAGE_WITHOUT_BODY.getCode(), "Message body was null");
   }
 
   private Uni<Person> persistAccountAssociates(final AccountDTO dto) {
