@@ -1,7 +1,6 @@
 package com.jss.bank.edge.resource;
 
 import com.jss.bank.edge.domain.dto.AccountDTO;
-import com.jss.bank.edge.handler.AccountPersistenceHandler;
 import com.jss.bank.edge.security.ManagerAuthenticationHandler;
 import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.http.HttpMethod;
@@ -41,7 +40,7 @@ public class ManagementResource extends AbstractResource{
           final RequestBody body = context.body();
           final AccountDTO dto = body.asPojo(AccountDTO.class);
           final DeliveryOptions deliveryOptions = new DeliveryOptions()
-              .setCodecName(AccountPersistenceHandler.BODY_CODEC.name());
+              .setCodecName(AccountDTO.class.getName());
 
           return vertx.eventBus()
               .request(ACCOUNT_PERSISTENCE_ADDR, dto, deliveryOptions)

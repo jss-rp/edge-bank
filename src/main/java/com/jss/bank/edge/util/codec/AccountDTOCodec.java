@@ -42,7 +42,7 @@ public class AccountDTOCodec implements MessageCodec<AccountDTO, AccountDTO> {
 
   @Override
   public String name() {
-    return "AccountDTO";
+    return AccountDTO.class.getName();
   }
 
   @Override

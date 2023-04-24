@@ -19,5 +19,5 @@ public abstract class Repository<T> {
   public Uni<?> find(T entity) {
     return sessionFactory
         .withSession(session -> session.find(entity.getClass(), entity));
-  };
+  }
 }
