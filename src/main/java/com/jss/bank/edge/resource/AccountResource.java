@@ -2,25 +2,17 @@ package com.jss.bank.edge.resource;
 
 import com.jss.bank.edge.domain.ResponseWrapper;
 import com.jss.bank.edge.domain.dto.AccountDTO;
-import com.jss.bank.edge.domain.dto.CreatedAccoutResponseDTO;
 import com.jss.bank.edge.domain.dto.PersonDTO;
 import com.jss.bank.edge.domain.dto.TransactionDTO;
 import com.jss.bank.edge.domain.entity.Account;
-import com.jss.bank.edge.domain.entity.Document;
-import com.jss.bank.edge.domain.entity.Person;
 import com.jss.bank.edge.domain.entity.Transaction;
 import com.jss.bank.edge.security.AccountAuthenticationHandler;
-import com.jss.bank.edge.util.PasswordGenerator;
-import io.smallrye.mutiny.Uni;
 import io.vertx.mutiny.core.Vertx;
-import io.vertx.mutiny.ext.auth.VertxContextPRNG;
 import io.vertx.mutiny.ext.web.Router;
 import org.hibernate.reactive.mutiny.Mutiny;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -70,76 +62,6 @@ public class AccountResource extends AbstractResource {
                 .build()
             )
         ));
-
-    router.route(POST, "/account")
-        .respond(context -> {
-          final AccountDTO dto = context.body().asPojo(AccountDTO.class);
-
-          return sessionFactory.withTransaction(session -> {
-            final PasswordGenerator passwordGenerator = new PasswordGenerator();
-            final String password = passwordGenerator.generate(15);
-            final String hashedPassword = accountAuthenticationHandler.getSqlAuthentication()
-                .hash(
-                    "pbkdf2",
-                    VertxContextPRNG.current().nextString(32),
-                    password
-                );
-
-            final Document document = Document.builder()
-                .document(dto.getPerson().getDocument())
-                .documentType("cpf")
-                .build();
-
-            final Person person = Person.builder()
-                .firstName(dto.getPerson().getFirstName())
-                .surname(dto.getPerson().getSurname())
-                .birthdate(LocalDate.now())
-                .document(document)
-                .build();
-
-            final Uni<Void> documentPersistence = session.persist(document)
-                .onFailure()
-                .invoke(error -> logger.error("Fail on Document persistence", error));
-
-            final Uni<Void> personPersistence = session.persist(person)
-                .onFailure()
-                .invoke(error -> logger.error("Fail on Person persistence", error));
-
-
-            return documentPersistence
-                .chain(__ -> personPersistence)
-                .flatMap(__ -> {
-                  final Account account = Account.builder()
-                      .code(dto.getCode())
-                      .agency(dto.getAgency())
-                      .dtVerifier(dto.getDtVerifier())
-                      .balance(BigDecimal.ZERO)
-                      .password(hashedPassword)
-                      .person(person)
-                      .build();
-
-                  return session.persist(account)
-                      .call(session::flush)
-                      .chain(empty -> Uni.createFrom().item(
-                          ResponseWrapper.builder()
-                              .success(true)
-                              .message("New account created successfully")
-                              .content(new CreatedAccoutResponseDTO(
-                                  account.getAgency(),
-                                  account.getCode(),
-                                  account.getDtVerifier(),
-                                  null,
-                                  new PersonDTO(
-                                      person.getFirstName(),
-                                      person.getSurname(),
-                                      person.getBirthdate(),
-                                      document.getDocument())
-                              ))
-                              .timestamp(LocalDateTime.now())
-                              .build()));
-                });
-          });
-        });
 
     router.route(POST, "/account/transaction")
         .handler(accountAuthenticationHandler)
