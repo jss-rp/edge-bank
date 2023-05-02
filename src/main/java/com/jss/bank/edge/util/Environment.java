@@ -1,12 +1,11 @@
 package com.jss.bank.edge.util;
 
-import lombok.val;
-
-public enum AvailableEnvironment {
+public enum Environment {
   DEV, STG, HOM, PROD;
 
-  public static AvailableEnvironment fromString(final String raw) {
-    val lowerCaseRaw = raw.toLowerCase();
+  public static Environment fromString(final String raw) {
+    var lowerCaseRaw = raw.toLowerCase();
+
     return switch (lowerCaseRaw) {
       case "dev", "development" -> DEV;
       case "stg", "staging" -> STG;

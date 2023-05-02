@@ -1,6 +1,6 @@
 package com.jss.bank.edge.security;
 
-import com.jss.bank.edge.configutaion.AuthDBConfiguration;
+import com.jss.bank.edge.configutaion.DBConfiguration;
 import com.jss.bank.edge.security.exception.InvalidUsernamePasswordException;
 import com.jss.bank.edge.security.exception.UserNotAllowedException;
 import io.smallrye.mutiny.Uni;
@@ -26,7 +26,7 @@ public class AccountAuthenticationHandler implements Consumer<RoutingContext> {
   private SqlAuthentication sqlAuthentication;
 
   public AccountAuthenticationHandler() {
-    Optional.ofNullable(AuthDBConfiguration.getSQLCLient())
+    Optional.ofNullable(DBConfiguration.getSQLCLient())
         .ifPresentOrElse(
             client -> this.sqlAuthentication = SqlAuthentication.create(client, new SqlAuthenticationOptions(
                 new JsonObject().put("authenticationQuery", AUTH_QUERY)
@@ -83,9 +83,5 @@ public class AccountAuthenticationHandler implements Consumer<RoutingContext> {
           request.response().setStatusCode(401).endAndForget();
           logger.error("Fail on authentication.", error);
         });
-  }
-
-  public SqlAuthentication getSqlAuthentication() {
-    return sqlAuthentication;
   }
 }

@@ -1,15 +1,11 @@
 package com.jss.bank.edge;
 
-import com.jss.bank.edge.configutaion.AuthDBConfiguration;
-import com.jss.bank.edge.util.IntegratedService;
-import com.jss.bank.edge.util.ResourceJsonFileReader;
-import com.jss.bank.edge.util.credential.SecretsManagerProvider;
+import com.jss.bank.edge.configutaion.DBConfiguration;
 import com.jss.bank.edge.verticle.ClientVerticle;
 import com.jss.bank.edge.verticle.PersistenceVerticle;
 import io.smallrye.mutiny.Uni;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.VertxOptions;
-import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.Vertx;
 import org.hibernate.reactive.mutiny.Mutiny;
 import org.slf4j.Logger;
@@ -24,20 +20,16 @@ public class Application {
 
   private static Mutiny.SessionFactory SESSION_FACTORY;
 
-  private static JsonObject CONFIGURATIONS;
-
   public static void main(String[] args) {
-    final ResourceJsonFileReader fileReader = new ResourceJsonFileReader();
-    final JsonObject configurations = fileReader.read("config.json");
     final Vertx vertx = Vertx.vertx(new VertxOptions());
 
-    CONFIGURATIONS = configurations.getJsonObject("integratedServices");
-
-    final SecretsManagerProvider secretsManagerProvider = new SecretsManagerProvider();
+    DBConfiguration.initialize(vertx);
 
     Uni<Void> hibernateStartingUni = Uni.createFrom().deferred(() -> {
       SESSION_FACTORY = Persistence
-          .createEntityManagerFactory("mysql-edge-bank")
+          .createEntityManagerFactory(
+              "default",
+              DBConfiguration.getDefaultPersistenceUnitProperties())
           .unwrap(Mutiny.SessionFactory.class);
 
       return Uni.createFrom().voidItem();
@@ -46,10 +38,9 @@ public class Application {
     hibernateStartingUni = vertx.executeBlocking(hibernateStartingUni)
         .onItem().invoke(() -> logger.info("Hibernate Reactive is ready"));
 
-    AuthDBConfiguration.initialize(vertx, secretsManagerProvider.getCrendentials(IntegratedService.DATABASE));
 
-    final Uni<String> persistenceVerticleDeploymentUni = vertx.deployVerticle(PersistenceVerticle::new, new DeploymentOptions().setConfig(configurations));
-    final Uni<String> clientVerticleDeploymentUni = vertx.deployVerticle(ClientVerticle::new, new DeploymentOptions().setConfig(configurations));
+    final Uni<String> persistenceVerticleDeploymentUni = vertx.deployVerticle(PersistenceVerticle::new, new DeploymentOptions());
+    final Uni<String> clientVerticleDeploymentUni = vertx.deployVerticle(ClientVerticle::new, new DeploymentOptions());
 
     hibernateStartingUni.await()
         .atMost(Duration.ofSeconds(30));
@@ -66,9 +57,5 @@ public class Application {
 
   public static Mutiny.SessionFactory getSessionFactory() {
     return SESSION_FACTORY;
-  }
-
-  public static JsonObject getConfigurations() {
-     return CONFIGURATIONS;
   }
 }

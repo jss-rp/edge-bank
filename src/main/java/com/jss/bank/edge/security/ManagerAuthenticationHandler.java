@@ -1,6 +1,6 @@
 package com.jss.bank.edge.security;
 
-import com.jss.bank.edge.configutaion.AuthDBConfiguration;
+import com.jss.bank.edge.configutaion.DBConfiguration;
 import com.jss.bank.edge.security.exception.InvalidBearerTokenException;
 import com.jss.bank.edge.security.exception.UserNotAllowedException;
 import io.vertx.core.json.JsonObject;
@@ -41,7 +41,7 @@ public class ManagerAuthenticationHandler implements Consumer<RoutingContext> {
 
     this.jwtAuth = JWTAuth.create(vertx, jwtAuthOptions);
 
-    Optional.ofNullable(AuthDBConfiguration.getSQLCLient())
+    Optional.ofNullable(DBConfiguration.getSQLCLient())
         .ifPresentOrElse(
             client -> this.sqlAuth = SqlAuthentication.create(client),
             () -> logger.error("No database configuration for SQLAuthentication."));
