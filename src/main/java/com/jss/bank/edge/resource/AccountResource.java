@@ -16,6 +16,8 @@ import org.slf4j.LoggerFactory;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import static com.jss.bank.edge.handler.TransactionPersistenceHandler.DELIVERY_OPTIONS;
+import static com.jss.bank.edge.verticle.PersistenceVerticle.TRANSACTION_PERSISTENCE_ADDR;
 import static io.vertx.core.http.HttpMethod.GET;
 import static io.vertx.core.http.HttpMethod.POST;
 
@@ -72,7 +74,6 @@ public class AccountResource extends AbstractResource {
               .code(dto.getAccountCode())
               .dtVerifier(dto.getDtVerifier())
               .build();
-
           final Transaction transaction = Transaction.builder()
               .uuid(UUID.randomUUID().toString())
               .value(dto.getValue())
@@ -80,24 +81,19 @@ public class AccountResource extends AbstractResource {
               .account(account)
               .build();
 
-          return sessionFactory.withSession(session -> session
-              .createQuery("from accounts where code = :code and dtVerifier = :dtVerifier", Account.class)
-              .setParameter("code", account.getCode())
-              .setParameter("dtVerifier", account.getDtVerifier())
-              .getSingleResult()
-              .chain(result -> {
-                account.setId(result.getId());
-
-                return session.persist(transaction)
-                    .chain(() -> {
-                      transaction.setFinishedAt(LocalDateTime.now());
-                      return session.persist(transaction).call(session::flush);
-                    });
-              })).onItem().transform(result -> ResponseWrapper.builder()
-              .success(true)
-              .message("OK")
-              .timestamp(LocalDateTime.now())
-              .build());
+          return vertx.eventBus()
+              .request(
+                  TRANSACTION_PERSISTENCE_ADDR,
+                  transaction,
+                  DELIVERY_OPTIONS)
+              .onItem()
+              .invoke(() -> context.response().setStatusCode(201))
+              .onFailure()
+              .invoke(error -> {
+                logger.error("Fail on Transaction persistence. Error: ", error);
+                context.response().setStatusCode(500);
+              })
+              .replaceWithVoid();
         });
   }
 }
