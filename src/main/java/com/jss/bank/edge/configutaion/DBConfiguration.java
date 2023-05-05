@@ -9,7 +9,6 @@ import io.vertx.sqlclient.PoolOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
@@ -19,23 +18,50 @@ public class DBConfiguration {
 
   public static final Logger logger = LoggerFactory.getLogger(DBConfiguration.class);
 
-  private static final Map<String, String> DB_CONFIGURATION = new HashMap<>();
-
   private static SqlClient CLIENT;
 
+  private final String host;
+
+  private final Integer port;
+
+  private final String schema;
+
+  private final String username;
+
+  private final String password;
+
+  private final Integer poolSize;
+
+  private static DBConfiguration CONFIGURATION;
+
+  private DBConfiguration(
+      final String host,
+      final Integer port,
+      final String schema,
+      final String username,
+      final String password,
+      final Integer poolSize
+  ) {
+    this.host = host;
+    this.port = port;
+    this.schema = schema;
+    this.username = username;
+    this.password = password;
+    this.poolSize = poolSize;
+  }
 
   public static void initialize(final Vertx vertx) {
     final MySQLConnectOptions connectOptions = new MySQLConnectOptions();
 
-    readEnvironmentVars();
-    connectOptions.setHost(DB_CONFIGURATION.get("DB_HOST"));
-    connectOptions.setPort(Integer.parseInt(DB_CONFIGURATION.get("DB_PORT")));
-    connectOptions.setDatabase(DB_CONFIGURATION.get("DB_SCHEMA"));
-    connectOptions.setUser(DB_CONFIGURATION.get("DB_USERNAME"));
-    connectOptions.setPassword(DB_CONFIGURATION.get("DB_PASSWORD"));
+    CONFIGURATION = readEnvironmentVars();
+    connectOptions.setHost(CONFIGURATION.host);
+    connectOptions.setPort(CONFIGURATION.port);
+    connectOptions.setDatabase(CONFIGURATION.schema);
+    connectOptions.setUser(CONFIGURATION.username);
+    connectOptions.setPassword(CONFIGURATION.password);
 
     final PoolOptions poolOptions = new PoolOptions();
-    poolOptions.setMaxSize(Integer.parseInt(DB_CONFIGURATION.get("DB_POOL_SIZE")));
+    poolOptions.setMaxSize(CONFIGURATION.poolSize);
 
     CLIENT = MySQLPool.pool(vertx, connectOptions, poolOptions);
 
@@ -49,38 +75,35 @@ public class DBConfiguration {
   public static Properties getDefaultPersistenceUnitProperties() {
     var properties = new Properties();
     var url = String.format("jdbc:mysql://%s:%s/%s",
-        DB_CONFIGURATION.get("DB_HOST"),
-        DB_CONFIGURATION.get("DB_PORT"),
-        DB_CONFIGURATION.get("DB_SCHEMA"));
+        CONFIGURATION.host,
+        CONFIGURATION.port,
+        CONFIGURATION.schema);
 
     properties.put("javax.persistence.jdbc.url", url);
-    properties.put("javax.persistence.jdbc.user", DB_CONFIGURATION.get("DB_USERNAME"));
-    properties.put("javax.persistence.jdbc.password", DB_CONFIGURATION.get("DB_PASSWORD"));
-    properties.put("hibernate.connection.pool_size", DB_CONFIGURATION.get("DB_POOL_SIZE"));
+    properties.put("javax.persistence.jdbc.user", CONFIGURATION.username);
+    properties.put("javax.persistence.jdbc.password", CONFIGURATION.password);
+    properties.put("hibernate.connection.pool_size", CONFIGURATION.poolSize);
     properties.put("javax.persistence.schema-generation.database.action", "none");
     properties.put("hibernate.show_sql", "false");
 
     return properties;
   }
 
-  private static void readEnvironmentVars() {
+  private static DBConfiguration readEnvironmentVars() {
     final Map<String, String> systemEnvVars = System.getenv();
     final String environment = systemEnvVars.getOrDefault("ENV", "dev");
 
     if(Environment.fromString(environment).equals(DEV)) {
-      DB_CONFIGURATION.put("DB_HOST", "localhost");
-      DB_CONFIGURATION.put("DB_PORT", "3306");
-      DB_CONFIGURATION.put("DB_SCHEMA", "edge_bank");
-      DB_CONFIGURATION.put("DB_USERNAME", "user");
-      DB_CONFIGURATION.put("DB_PASSWORD", "secret");
-      DB_CONFIGURATION.put("DB_POOL_SIZE", "10");
-    } else {
-      DB_CONFIGURATION.put("DB_HOST", systemEnvVars.get("DB_HOST"));
-      DB_CONFIGURATION.put("DB_PORT", systemEnvVars.get("DB_PORT"));
-      DB_CONFIGURATION.put("DB_SCHEMA", systemEnvVars.get("DB_SCHEMA"));
-      DB_CONFIGURATION.put("DB_USERNAME", systemEnvVars.get("DB_USERNAME"));
-      DB_CONFIGURATION.put("DB_PASSWORD", systemEnvVars.get("DB_PASSWORD"));
-      DB_CONFIGURATION.put("DB_POOL_SIZE", systemEnvVars.get("DB_POOL_SIZE"));
+      return new DBConfiguration("localhost", 3306, "edge_bank", "user", "secret", 10);
     }
+
+    return new DBConfiguration(
+        systemEnvVars.get("DB_HOST"),
+        Integer.parseInt(systemEnvVars.get("DB_PORT")),
+        systemEnvVars.get("DB_SCHEMA"),
+        systemEnvVars.get("DB_USERNAME"),
+        systemEnvVars.get("DB_PASSWORD"),
+        Integer.parseInt(systemEnvVars.get("DB_POOL_SIZE"))
+    );
   }
 }
